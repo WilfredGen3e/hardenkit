@@ -6,9 +6,13 @@ function Export-HKData {
     .DESCRIPTION
         Dit is de enige functie die een engineer of de RMM daadwerkelijk aanroept (dagelijks,
         als SYSTEM) — de losse Get-HK*-functies zijn interne bouwstenen. Bepaalt de hostrol
-        (Get-HKHostRole); op een DC worden Test-HKAuditConfig, Get-HKBaseline, Get-HKNtlmUsage
-        en Get-HKLdapBinding aangeroepen. Eventlog-collectors lezen incrementeel vanaf de
-        RecordId's in het statusbestand van de vorige run. Schrijft twee bestanden in
+        (Get-HKHostRole); op een DC worden Test-HKAuditConfig, Get-HKBaseline, Get-HKNtlmUsage,
+        Get-HKLdapBinding en Get-HKKerberos aangeroepen. Eventlog-collectors lezen incrementeel
+        vanaf de RecordId's in het statusbestand van de vorige run — let op: Get-HKNtlmUsage en
+        Get-HKKerberos lezen allebei (deels) het Security-log, maar voor verschillende
+        event-ID's; ze krijgen daarom elk hun eigen RecordId-trackers in het statusbestand, niet
+        één gedeelde, om te voorkomen dat de ene collector de andere per ongeluk events laat
+        overslaan of dubbel laat lezen. Schrijft twee bestanden in
         -OutputPath:
           - <klant>_<host>_<yyyyMMdd>.json — het dagbestand volgens het PRD-schema (schema,
             client, host, role, moduleVersion, window, collectors, auditConfig, baseline,
@@ -86,12 +90,14 @@ function Export-HKData {
         baseline    = 'ok'
         ntlmUsage   = 'ok'
         ldapBinding = 'ok'
+        kerberos    = 'ok'
     }
 
     $auditConfig = $null
     $baseline = $null
     $ntlmUsage = $null
     $ldapBinding = $null
+    $kerberos = $null
 
     if ($role -eq 'DC') {
         try {
@@ -137,6 +143,17 @@ function Export-HKData {
             Write-Warning "Export-HKData: Get-HKLdapBinding faalde: $_"
             $collectorStatus.ldapBinding = 'onbekend'
         }
+
+        try {
+            $kerberos = Get-HKKerberos -ComputerName $ComputerName -SecurityStartRecordId $previousState.lastKerberosSecurityRecordId -SystemStartRecordId $previousState.lastSystemRecordId
+            if (@($kerberos.Collectors.PSObject.Properties | Where-Object Value -eq 'onbekend').Count -gt 0) {
+                $collectorStatus.kerberos = 'onbekend'
+            }
+        }
+        catch {
+            Write-Warning "Export-HKData: Get-HKKerberos faalde: $_"
+            $collectorStatus.kerberos = 'onbekend'
+        }
     }
     else {
         Write-Warning "Export-HKData: host-rol is '$role', fase 0 ondersteunt alleen DC's. Geen collectors uitgevoerd."
@@ -153,6 +170,9 @@ function Export-HKData {
     if ($ldapBinding) {
         foreach ($row in @($ldapBinding.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
     }
+    if ($kerberos) {
+        foreach ($row in @($kerberos.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
+    }
 
     $windowFromUtc = if ($previousState.runCompletedUtc) { [datetime]$previousState.runCompletedUtc } else { $null }
 
@@ -160,6 +180,8 @@ function Export-HKData {
         lastSecurityRecordId         = if ($ntlmUsage) { $ntlmUsage.LastSecurityRecordId } else { $previousState.lastSecurityRecordId }
         lastNtlmOperationalRecordId  = if ($ntlmUsage) { $ntlmUsage.LastNtlmOperationalRecordId } else { $previousState.lastNtlmOperationalRecordId }
         lastDirectoryServiceRecordId = if ($ldapBinding) { $ldapBinding.LastDirectoryServiceRecordId } else { $previousState.lastDirectoryServiceRecordId }
+        lastKerberosSecurityRecordId = if ($kerberos) { $kerberos.LastSecurityRecordId } else { $previousState.lastKerberosSecurityRecordId }
+        lastSystemRecordId           = if ($kerberos) { $kerberos.LastSystemRecordId } else { $previousState.lastSystemRecordId }
         runCompletedUtc              = $runCompletedUtc.ToString('yyyy-MM-ddTHH:mm:ssZ')
     }
 

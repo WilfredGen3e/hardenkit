@@ -100,6 +100,16 @@ Describe 'Export-HKData' {
                     LastDirectoryServiceRecordId = 700
                 }
             }
+            Mock -ModuleName HardenKit Get-HKKerberos {
+                [pscustomobject]@{
+                    Collectors            = [pscustomobject]@{ SecurityLog = 'ok'; SystemLog = 'ok' }
+                    Findings              = @(
+                        [pscustomobject]@{ Measure = 'missing_spn'; AccountName = 'appsvc'; AccountSid = $null; ClientFqdn = $null; ClientIp = '10.0.0.30'; Target = 'HTTP/missingspn.contoso.com'; Count = 1; FirstSeenUtc = [datetime]'2026-10-01T06:00:00Z'; LastSeenUtc = [datetime]'2026-10-01T06:00:00Z' }
+                    )
+                    LastSecurityRecordId  = 800
+                    LastSystemRecordId    = 900
+                }
+            }
         }
 
         It 'schrijft het dagbestand en het statusbestand' {
@@ -114,7 +124,8 @@ Describe 'Export-HKData' {
             $result.Collectors.baseline | Should -Be 'ok'
             $result.Collectors.ntlmUsage | Should -Be 'ok'
             $result.Collectors.ldapBinding | Should -Be 'ok'
-            $result.FindingsCount | Should -Be 2
+            $result.Collectors.kerberos | Should -Be 'ok'
+            $result.FindingsCount | Should -Be 3
         }
 
         It 'schrijft een dagbestand volgens het PRD-schema' {
@@ -125,8 +136,9 @@ Describe 'Export-HKData' {
             $data.client | Should -Be 'KLANT01'
             $data.host | Should -Be 'dc01.contoso.com'
             $data.role | Should -Be 'DC'
-            $data.findings.Count | Should -Be 2
+            $data.findings.Count | Should -Be 3
             ($data.findings | Where-Object measure -eq 'ntlmv1').account.name | Should -Be 'svc_scan'
+            ($data.findings | Where-Object measure -eq 'missing_spn').target | Should -Be 'HTTP/missingspn.contoso.com'
             $data.baseline.OperatingSystem.Caption | Should -Be 'Windows Server 2022'
         }
 
@@ -136,6 +148,8 @@ Describe 'Export-HKData' {
             $state.lastSecurityRecordId | Should -Be 500
             $state.lastNtlmOperationalRecordId | Should -Be 600
             $state.lastDirectoryServiceRecordId | Should -Be 700
+            $state.lastKerberosSecurityRecordId | Should -Be 800
+            $state.lastSystemRecordId | Should -Be 900
         }
 
         It 'geeft StartRecordIds uit een eerdere state-run door aan de volgende run' {
@@ -147,6 +161,9 @@ Describe 'Export-HKData' {
             }
             Should -Invoke -ModuleName HardenKit Get-HKLdapBinding -ParameterFilter {
                 $DirectoryServiceStartRecordId -eq 700
+            }
+            Should -Invoke -ModuleName HardenKit Get-HKKerberos -ParameterFilter {
+                $SecurityStartRecordId -eq 800 -and $SystemStartRecordId -eq 900
             }
         }
 
@@ -180,6 +197,9 @@ Describe 'Export-HKData' {
             Mock -ModuleName HardenKit Get-HKLdapBinding {
                 [pscustomobject]@{ Collectors = [pscustomobject]@{ DirectoryServiceLog = 'ok' }; Findings = @(); LastDirectoryServiceRecordId = 1 }
             }
+            Mock -ModuleName HardenKit Get-HKKerberos {
+                [pscustomobject]@{ Collectors = [pscustomobject]@{ SecurityLog = 'ok'; SystemLog = 'ok' }; Findings = @(); LastSecurityRecordId = 1; LastSystemRecordId = 1 }
+            }
         }
 
         It 'breekt de run niet af en markeert alleen ntlmUsage als onbekend' {
@@ -188,6 +208,7 @@ Describe 'Export-HKData' {
             $result.Collectors.ntlmUsage | Should -Be 'onbekend'
             $result.Collectors.baseline | Should -Be 'ok'
             $result.Collectors.ldapBinding | Should -Be 'ok'
+            $result.Collectors.kerberos | Should -Be 'ok'
         }
     }
 
@@ -203,6 +224,7 @@ Describe 'Export-HKData' {
             Mock -ModuleName HardenKit Get-HKBaseline { }
             Mock -ModuleName HardenKit Get-HKNtlmUsage { }
             Mock -ModuleName HardenKit Get-HKLdapBinding { }
+            Mock -ModuleName HardenKit Get-HKKerberos { }
         }
 
         It 'markeert alle collectors als onbekend zonder ze aan te roepen' {
@@ -211,6 +233,7 @@ Describe 'Export-HKData' {
             $result.Collectors.baseline | Should -Be 'onbekend'
             $result.Collectors.ntlmUsage | Should -Be 'onbekend'
             $result.Collectors.ldapBinding | Should -Be 'onbekend'
+            $result.Collectors.kerberos | Should -Be 'onbekend'
             $result.FindingsCount | Should -Be 0
 
             Should -Invoke -ModuleName HardenKit Test-HKAuditConfig -Times 0

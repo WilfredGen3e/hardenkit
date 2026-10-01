@@ -110,3 +110,10 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
   binding): `Client`, `IdentityUser`, `Count` — **minst zekere aanname in dit project tot nu
   toe**, eerst valideren. Ook te bevestigen: of 2887/3041 echt periodieke 24-uurs tellingen zijn
   zonder per-client detail (huidige aanname) of toch per-client data bevatten.
+- EventData-veldnamen Security-events 4768/4769 (`TargetUserName`, `TargetSid`, `ServiceName`,
+  `Status`/`ResultCode`, `TicketEncryptionType`, `IpAddress`) — redelijk zeker, net zo goed
+  gedocumenteerd als 4624. De encryptietype-waarden (`0x17`/`0x18` RC4, `0x1`/`0x3` DES) zelf
+  ook te bevestigen.
+- EventData-veldnamen System-events 11 (KDC, `ServicePrincipalName`) en 39/40/41 (Kdcsvc,
+  `TargetUserName`, `TargetSid`, `CertificateSubject`) — zelfde onzekerheidscategorie als de
+  LDAP-events hierboven; minder gedocumenteerd dan de Security-log events.
