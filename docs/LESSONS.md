@@ -32,6 +32,17 @@ altijd `$null` terug — ook als de functie zelf intern al netjes `@(...)` gebru
 functie-body beschermt de aanroeper dus niet. Enige betrouwbare fix: wrap de *aanroep*, nooit
 (alleen) de functie-body: `$x = @(Get-Foo)`. Pas dit overal toe waar een functie 0..N objecten
 kan teruggeven en de aanroeper `.Count` of een foreach op het resultaat doet.
+
+**Keerzijde, net zo belangrijk:** `@($null)` (of `@($iets.Dat.Null.Is)`) is géén lege array —
+het is een array mét één element, en dat element is `$null`. Dus `@(...)` rond een mogelijk
+`$null`-waarde "repareert" niets; een `foreach` daarover loopt gewoon één keer met `$row = $null`.
+Check expliciet op `$null`/`if ($x) { ... }` vóórdat je `@($x.Property)` doet, in plaats van te
+vertrouwen op `@(...)` alleen. **Samengevat: `@(...)` lost het "0 objecten → $null"-probleem bij
+een aanroep op, maar maakt een losse `$null`-waarde niet tot een lege array — twee verschillende
+problemen, twee verschillende fixes.**
+**Waar gezien:** `Export-HKData` crashte op een falende collector of een niet-DC-rol, omdat
+`@($ntlmUsage.Findings)` bij `$ntlmUsage -eq $null` een array met één `$null`-element gaf in
+plaats van leeg — opgelost met een expliciete `if ($ntlmUsage) { ... }` vóór de `foreach`.
 **Waar gezien:** `ConvertFrom-HKSetspnOutput` en het gebruik van `Get-HKDuplicateSpn` in
 `Get-HKBaseline`.
 

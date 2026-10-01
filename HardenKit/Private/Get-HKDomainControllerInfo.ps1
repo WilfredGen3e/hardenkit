@@ -31,7 +31,7 @@ function Get-HKDomainControllerInfo {
     $domain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
     $domainControllers = @($domain.DomainControllers | ForEach-Object { $_.Name })
     $pdcEmulator = $domain.PdcRoleOwner.Name
-    $localFqdn = ([System.Net.Dns]::GetHostByName($ComputerName)).HostName
+    $localFqdn = Get-HKLocalFqdn
 
     [pscustomobject]@{
         DomainControllers = $domainControllers
