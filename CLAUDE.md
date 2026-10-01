@@ -5,6 +5,9 @@
 Alleen-lezen PowerShell-module die meet wat er breekt als on-premises Active Directory gehardend wordt. In plaats van alleen te melden wát er mis is (zoals PingCastle/Purple Knight), meet HardenKit per hardeningmaatregel wie of wat er nog gebruik van maakt, zodat engineers een onderbouwde go/no-go kunnen nemen.
 
 Volledige requirements: [`docs/PRD.md`](docs/PRD.md).
+Bekende valkuilen en hoe we ze oplosten: [`docs/LESSONS.md`](docs/LESSONS.md) — **check dit
+bestand voor je aan een nieuwe collector begint, en vul het aan zodra je een niet-triviale bug
+fixt.**
 
 ## Technische keuzes
 
@@ -19,7 +22,14 @@ Volledige requirements: [`docs/PRD.md`](docs/PRD.md).
 ## Structuur
 
 - `docs/PRD.md` — volledige productvereisten (bron van waarheid voor scope/fasering).
-- Module-structuur (collectors, `Export-HKData`, `New-HKReport`, tests) nog op te zetten.
+- `docs/LESSONS.md` — valkuilen en hoe we ze oplosten; checken/aanvullen bij elke nieuwe stap.
+- `HardenKit/HardenKit.psd1` / `HardenKit.psm1` — moduleskelet (manifest + root module die
+  Public/Private dot-sourcet en alleen Public exporteert).
+- `HardenKit/Public/` — de negen module-functies uit de PRD, één bestand per functie.
+- `HardenKit/Private/` — helpers: I/O-laag per Windows-bron (CIM, registry, auditpol.exe,
+  setspn.exe, w32tm.exe, ADSI) gescheiden van pure parsing-/logicalaag (zie `docs/LESSONS.md`).
+- `HardenKit/Tests/` — Pester-tests, één testbestand per public-functie plus een algemeen
+  `HardenKit.Tests.ps1` voor het moduleskelet zelf.
 
 ## Fasering
 
