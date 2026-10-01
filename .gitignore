@@ -1,0 +1,16 @@
+# PowerShell / VS Code
+*.ps1xml.bak
+TestResults.xml
+Pester-*.xml
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+
+# Lokale output (JSON-exports, rapporten) nooit meecommitten
+/out/
+/output/
+*.hkreport.html
