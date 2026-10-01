@@ -23,6 +23,7 @@ function ConvertFrom-HKAuditPolicyCsv {
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [AllowEmptyCollection()]
+        [AllowEmptyString()]
         [string[]]$InputObject
     )
 
