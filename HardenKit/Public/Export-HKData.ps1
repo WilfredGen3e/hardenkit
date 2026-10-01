@@ -7,16 +7,19 @@ function Export-HKData {
         Dit is de enige functie die een engineer of de RMM daadwerkelijk aanroept (dagelijks,
         als SYSTEM) — de losse Get-HK*-functies zijn interne bouwstenen. Bepaalt de hostrol
         (Get-HKHostRole); op een DC worden Test-HKAuditConfig, Get-HKBaseline, Get-HKNtlmUsage,
-        Get-HKLdapBinding en Get-HKKerberos aangeroepen. Eventlog-collectors lezen incrementeel
-        vanaf de RecordId's in het statusbestand van de vorige run — let op: Get-HKNtlmUsage en
-        Get-HKKerberos lezen allebei (deels) het Security-log, maar voor verschillende
-        event-ID's; ze krijgen daarom elk hun eigen RecordId-trackers in het statusbestand, niet
-        één gedeelde, om te voorkomen dat de ene collector de andere per ongeluk events laat
-        overslaan of dubbel laat lezen. Schrijft twee bestanden in
+        Get-HKLdapBinding, Get-HKKerberos en Get-HKDomainHealth aangeroepen. Eventlog-collectors
+        lezen incrementeel vanaf de RecordId's in het statusbestand van de vorige run — let op:
+        meerdere collectors lezen (deels) hetzelfde log maar voor verschillende event-ID's
+        (Get-HKNtlmUsage/Get-HKKerberos/Get-HKDomainHealth op Security;
+        Get-HKLdapBinding/Get-HKDomainHealth op Directory Service); elke collector krijgt
+        daarom zijn eigen RecordId-trackers in het statusbestand, niet gedeelde, om te
+        voorkomen dat de ene collector de andere per ongeluk events laat overslaan of dubbel
+        laat lezen. Schrijft twee bestanden in
         -OutputPath:
           - <klant>_<host>_<yyyyMMdd>.json — het dagbestand volgens het PRD-schema (schema,
             client, host, role, moduleVersion, window, collectors, auditConfig, baseline,
-            findings).
+            findings, dailySummaries — de periodieke 24-uurs tellingen zonder per-client
+            detail uit Get-HKLdapBinding/Get-HKDomainHealth, apart van findings).
           - <klant>_<host>.state.json — laatst gelezen RecordId per log, voor de volgende
             incrementele run.
         Gedeeltelijke uitval van één collector resulteert in status 'onbekend' voor die
@@ -86,11 +89,12 @@ function Export-HKData {
     $role = Get-HKHostRole -ComputerName $ComputerName
 
     $collectorStatus = [ordered]@{
-        auditConfig = 'ok'
-        baseline    = 'ok'
-        ntlmUsage   = 'ok'
-        ldapBinding = 'ok'
-        kerberos    = 'ok'
+        auditConfig  = 'ok'
+        baseline     = 'ok'
+        ntlmUsage    = 'ok'
+        ldapBinding  = 'ok'
+        kerberos     = 'ok'
+        domainHealth = 'ok'
     }
 
     $auditConfig = $null
@@ -98,6 +102,7 @@ function Export-HKData {
     $ntlmUsage = $null
     $ldapBinding = $null
     $kerberos = $null
+    $domainHealth = $null
 
     if ($role -eq 'DC') {
         try {
@@ -154,6 +159,17 @@ function Export-HKData {
             Write-Warning "Export-HKData: Get-HKKerberos faalde: $_"
             $collectorStatus.kerberos = 'onbekend'
         }
+
+        try {
+            $domainHealth = Get-HKDomainHealth -ComputerName $ComputerName -SecurityStartRecordId $previousState.lastDomainHealthSecurityRecordId -SystemStartRecordId $previousState.lastDomainHealthSystemRecordId -DirectoryServiceStartRecordId $previousState.lastDomainHealthDirectoryServiceRecordId
+            if (@($domainHealth.Collectors.PSObject.Properties | Where-Object Value -eq 'onbekend').Count -gt 0) {
+                $collectorStatus.domainHealth = 'onbekend'
+            }
+        }
+        catch {
+            Write-Warning "Export-HKData: Get-HKDomainHealth faalde: $_"
+            $collectorStatus.domainHealth = 'onbekend'
+        }
     }
     else {
         Write-Warning "Export-HKData: host-rol is '$role', fase 0 ondersteunt alleen DC's. Geen collectors uitgevoerd."
@@ -173,32 +189,51 @@ function Export-HKData {
     if ($kerberos) {
         foreach ($row in @($kerberos.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
     }
+    if ($domainHealth) {
+        foreach ($row in @($domainHealth.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
+    }
 
     $windowFromUtc = if ($previousState.runCompletedUtc) { [datetime]$previousState.runCompletedUtc } else { $null }
 
     $newState = [ordered]@{
-        lastSecurityRecordId         = if ($ntlmUsage) { $ntlmUsage.LastSecurityRecordId } else { $previousState.lastSecurityRecordId }
-        lastNtlmOperationalRecordId  = if ($ntlmUsage) { $ntlmUsage.LastNtlmOperationalRecordId } else { $previousState.lastNtlmOperationalRecordId }
-        lastDirectoryServiceRecordId = if ($ldapBinding) { $ldapBinding.LastDirectoryServiceRecordId } else { $previousState.lastDirectoryServiceRecordId }
-        lastKerberosSecurityRecordId = if ($kerberos) { $kerberos.LastSecurityRecordId } else { $previousState.lastKerberosSecurityRecordId }
-        lastSystemRecordId           = if ($kerberos) { $kerberos.LastSystemRecordId } else { $previousState.lastSystemRecordId }
-        runCompletedUtc              = $runCompletedUtc.ToString('yyyy-MM-ddTHH:mm:ssZ')
+        lastSecurityRecordId                  = if ($ntlmUsage) { $ntlmUsage.LastSecurityRecordId } else { $previousState.lastSecurityRecordId }
+        lastNtlmOperationalRecordId           = if ($ntlmUsage) { $ntlmUsage.LastNtlmOperationalRecordId } else { $previousState.lastNtlmOperationalRecordId }
+        lastDirectoryServiceRecordId          = if ($ldapBinding) { $ldapBinding.LastDirectoryServiceRecordId } else { $previousState.lastDirectoryServiceRecordId }
+        lastKerberosSecurityRecordId          = if ($kerberos) { $kerberos.LastSecurityRecordId } else { $previousState.lastKerberosSecurityRecordId }
+        lastSystemRecordId                    = if ($kerberos) { $kerberos.LastSystemRecordId } else { $previousState.lastSystemRecordId }
+        lastDomainHealthSecurityRecordId      = if ($domainHealth) { $domainHealth.LastSecurityRecordId } else { $previousState.lastDomainHealthSecurityRecordId }
+        lastDomainHealthSystemRecordId        = if ($domainHealth) { $domainHealth.LastSystemRecordId } else { $previousState.lastDomainHealthSystemRecordId }
+        lastDomainHealthDirectoryServiceRecordId = if ($domainHealth) { $domainHealth.LastDirectoryServiceRecordId } else { $previousState.lastDomainHealthDirectoryServiceRecordId }
+        runCompletedUtc                       = $runCompletedUtc.ToString('yyyy-MM-ddTHH:mm:ssZ')
+    }
+
+    # Periodieke dagsamenvattingen (geen per-client detail, zie Get-HKLdapBinding/
+    # Get-HKDomainHealth): apart in het dagbestand, niet samengevoegd met findings.
+    # @(...) hier rond het hele if/else-blok, niet alleen om de losse takken: een if/else-
+    # expressie "unwrapt" een array-resultaat net als een functiereturn (zie docs/LESSONS.md) —
+    # zonder deze buitenste @(...) wordt een 1-element array bij toekenning omgezet naar het
+    # kale object erin, wat ConvertTo-Json dan niet als array wegschrijft.
+    $dailySummaries = [ordered]@{
+        ldapSigning        = @(if ($ldapBinding) { @($ldapBinding.SigningDailySummary) } else { @() })
+        ldapChannelBinding = @(if ($ldapBinding) { @($ldapBinding.ChannelBindingDailySummary) } else { @() })
+        unknownSubnets     = @(if ($domainHealth) { @($domainHealth.UnknownSubnetsDailySummary) } else { @() })
     }
 
     $data = [ordered]@{
-        schema        = '1.0'
-        client        = $ClientCode
-        host          = $hostFqdn
-        role          = $role
-        moduleVersion = $moduleVersion
-        window        = [ordered]@{
+        schema         = '1.0'
+        client         = $ClientCode
+        host           = $hostFqdn
+        role           = $role
+        moduleVersion  = $moduleVersion
+        window         = [ordered]@{
             from = if ($windowFromUtc) { $windowFromUtc.ToString('yyyy-MM-ddTHH:mm:ssZ') } else { $null }
             to   = $runCompletedUtc.ToString('yyyy-MM-ddTHH:mm:ssZ')
         }
-        collectors    = [pscustomobject]$collectorStatus
-        auditConfig   = $auditConfig
-        baseline      = $baseline
-        findings      = $findings.ToArray()
+        collectors     = [pscustomobject]$collectorStatus
+        auditConfig    = $auditConfig
+        baseline       = $baseline
+        findings       = $findings.ToArray()
+        dailySummaries = [pscustomobject]$dailySummaries
     }
 
     ([pscustomobject]$data | ConvertTo-Json -Depth 10) | Set-Content -Path $dataFilePath -Encoding UTF8

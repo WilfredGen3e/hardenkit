@@ -43,6 +43,20 @@ problemen, twee verschillende fixes.**
 **Waar gezien:** `Export-HKData` crashte op een falende collector of een niet-DC-rol, omdat
 `@($ntlmUsage.Findings)` bij `$ntlmUsage -eq $null` een array met één `$null`-element gaf in
 plaats van leeg — opgelost met een expliciete `if ($ntlmUsage) { ... }` vóór de `foreach`.
+
+**Nog een generalisatie, empirisch bevestigd:** het "0-of-1-element-array wordt uitgepakt"-gedrag
+geldt niet alleen voor functiereturns en een kale `foreach`-als-expressie (zie hierboven), maar
+voor élke PowerShell-constructie die impliciet naar de pipeline schrijft, waaronder een
+**`if/else`-blok dat als expressie gebruikt wordt** (`$x = if (...) { @(...) } else { @() }`).
+Zelfs als beide takken al expliciet `@(...)` gebruiken, wordt het resultaat bij toekenning alsnog
+uitgepakt als er 0 of 1 elementen in zitten. Fix: wrap het hele if/else-blok, niet de losse
+takken: `$x = @(if (...) { @(...) } else { @() })`.
+**Waar gezien:** `Export-HKData`'s `dailySummaries`-object: `ldapSigning = if ($ldapBinding)
+{ @(...) } else { @() }` gaf bij precies 1 item een kaal object terug in plaats van een
+1-element array, en `ConvertTo-Json` schreef het dus ook niet als JSON-array weg. Vond dit pas
+op bij het testen van de JSON-uitvoer, niet bij het schrijven van de code zelf — **reden te meer
+om dit soort constructies altijd te testen met 0, 1 én meerdere elementen, nooit alleen met 0 of
+meerdere.**
 **Waar gezien:** `ConvertFrom-HKSetspnOutput` en het gebruik van `Get-HKDuplicateSpn` in
 `Get-HKBaseline`.
 
@@ -117,3 +131,11 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
 - EventData-veldnamen System-events 11 (KDC, `ServicePrincipalName`) en 39/40/41 (Kdcsvc,
   `TargetUserName`, `TargetSid`, `CertificateSubject`) — zelfde onzekerheidscategorie als de
   LDAP-events hierboven; minder gedocumenteerd dan de Security-log events.
+- EventData-veldnamen System-events 5827/5828 (`MachineAccount`) — net zo onzeker als de
+  LDAP-events. Ook te bevestigen: of 5816-5819 (netlogon_saturation) écht geen bruikbaar
+  per-client veld hebben (huidige aanname: puur als los voorval geteld) of toch iets als een
+  workstation-naam bevatten; en of 5807 inderdaad een periodieke telling is zonder per-client
+  IP (zoals 2887/3041) — per-client IP-detail voor onbekende subnetten zit mogelijk alleen in
+  `netlogon.log` (tekstbestand, niet het eventlog), wat fase 0 nu niet parset.
+- DFSR-replicatiefouten (los van de Directory Service-events 1311/1865/2042 die wél gelezen
+  worden) worden in fase 0 niet gelezen — PRD noemt dit als "o.a.", dus mogelijk gat.
