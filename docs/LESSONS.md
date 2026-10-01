@@ -25,10 +25,13 @@ uit documentatie af te leiden).
 **Fix:** geen comma-trick gebruiken; functies laten gewoon losse objecten streamen
 (`$results.ToArray()` zónder comma), en de aanroeper wrapt zelf met `@(...)` voor een
 betrouwbare array.
-**Vervolg-valkuil:** een functie die als laatste statement een lege array (`@()`) heeft, geeft
-bij *direct* aanroepen (dus niet via een pipe, bv. `$x = Get-Foo`) `$null` terug in plaats van
-een lege array — ook dat is standaard PowerShell-gedrag, geen bug in onze code. Oplossing: wrap
-de *aanroep*, niet de functie-body: `$x = @(Get-Foo)`.
+**Algemenere regel (geverifieerd, geldt los van de comma-trick):** een functie waarvan de
+uitvoer naar 0 objecten enumereert, geeft bij *directe* toekenning (`$x = Get-Foo`, geen pipe)
+altijd `$null` terug — ook als de functie zelf intern al netjes `@(...)` gebruikt
+(bv. `@($events | ForEach-Object {...})` als laatste statement). De `@(...)` binnen de
+functie-body beschermt de aanroeper dus niet. Enige betrouwbare fix: wrap de *aanroep*, nooit
+(alleen) de functie-body: `$x = @(Get-Foo)`. Pas dit overal toe waar een functie 0..N objecten
+kan teruggeven en de aanroeper `.Count` of een foreach op het resultaat doet.
 **Waar gezien:** `ConvertFrom-HKSetspnOutput` en het gebruik van `Get-HKDuplicateSpn` in
 `Get-HKBaseline`.
 
