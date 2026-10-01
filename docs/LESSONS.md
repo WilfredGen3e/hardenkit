@@ -56,6 +56,17 @@ geslaagde test telt.
 **Waar gezien:** `Test-HKAuditConfig.Tests.ps1` (herschreven), toegepast in
 `Get-HKBaseline.Tests.ps1`.
 
+### Een losse testhulpfunctie op scriptniveau is niet betrouwbaar zichtbaar in `BeforeAll`/`Mock`
+**Wat:** een `function New-HKTestEvent { ... }` bovenaan het testbestand (buiten
+`InModuleScope`, gewoon op scriptniveau) gaf "command not found" zodra die werd aangeroepen
+vanuit een `BeforeAll`-blok of een `Mock`-scriptblock — ook toen die niet eens over de
+module-grens ging. Oorzaak niet volledig doorgrond; empirisch vastgesteld, niet aangenomen.
+**Fix:** geen losse testhulpfunctie voor fixtures; bouw fixture-objecten inline als
+`[pscustomobject]@{...}` (zoals in `Get-HKNtlmUsage.Tests.ps1`), of bouw de data op in een
+variabele vlak vóór de `Mock`-aanroep en laat de mock-scriptblock alleen die variabele
+teruggeven (closures over variabelen werken wél betrouwbaar).
+**Waar gezien:** eerste opzet van `Get-HKLdapBinding.Tests.ps1`.
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
@@ -69,10 +80,12 @@ DC's. Daarom splitsen we Windows-only logica (CIM, registry, `auditpol.exe`, `se
    `ConvertFrom-HKAuditPolicyCsv`, `ConvertFrom-HKSetspnOutput`). Deze laag krijgt de
    uitgebreide tests, want die kunnen écht overal draaien.
 
-## Nog niet op een echte DC geverifieerd
+## Nog niet op een echte DC geverifieerd — pilot-testlijst
 
 Onderstaande zijn aannames op basis van Microsoft-documentatie, niet getest tegen een live DC.
-Zie ook de open vragen in `CLAUDE.md`.
+**Dit is de lijst om af te werken zodra de eerste pilot draait** (zie ook de open vragen in
+`CLAUDE.md`): per item een event dumpen (`(Get-WinEvent ...)[0].ToXml()`) of de instelling
+opzoeken, en de code + test-fixtures bijstellen waar nodig.
 
 - Registrynamen: `AuditNTLMInDomain`, `16 LDAP Interface Events`, `LdapEnforceChannelBinding`,
   `LDAPServerIntegrity`, `RestrictSendingNTLMTraffic`, `RestrictReceivingNTLMTraffic`,
@@ -80,3 +93,9 @@ Zie ook de open vragen in `CLAUDE.md`.
 - Engelstalige tool-uitvoer die we parsen: `auditpol.exe` (`Success`/`Failure`/
   `Success and Failure`/`No Auditing`), `setspn.exe -X`. Op een Nederlandstalige Windows-
   installatie kan deze tekst afwijken.
+- EventData-veldnamen event 8004 (NTLM/Operational): `UserName`, `Workstation`, `ServerName` —
+  matig zeker (8004 is minder uitgebreid publiek gedocumenteerd dan 4624/4776).
+- EventData-veldnamen events 2887/2889/3039/3041 (Directory Service, LDAP signing/channel
+  binding): `Client`, `IdentityUser`, `Count` — **minst zekere aanname in dit project tot nu
+  toe**, eerst valideren. Ook te bevestigen: of 2887/3041 echt periodieke 24-uurs tellingen zijn
+  zonder per-client detail (huidige aanname) of toch per-client data bevatten.
