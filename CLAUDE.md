@@ -31,7 +31,9 @@ Elke fase start pas als de gate van de vorige fase gehaald is (zie PRD).
 
 ## Status
 
-- **01-10-2026:** PRD vastgelegd (`docs/PRD.md`). Nog geen code. Eerstvolgende stap: scaffold van de module opzetten (moduleskelet, manifest, mapstructuur voor collectors) — plan bespreken en akkoord afwachten voor het bouwen begint.
+- **01-10-2026:** PRD vastgelegd (`docs/PRD.md`).
+- **01-10-2026:** Moduleskelet opgezet in `HardenKit/`: manifest (`HardenKit.psd1`), root module (`HardenKit.psm1`), negen public-functies als skeletons (comment-based help + `throw "...nog niet geïmplementeerd."`), private helper `Get-HKHostRole` (DC/member server-detectie, enige echte logica tot nu toe), Pester-tests (manifest geldig, juiste exports, `Get-HKHostRole`-gedrag; CIM-tests geskipt buiten Windows). Lokaal gevalideerd met pwsh/Pester, gepusht naar `main`.
+- Eerstvolgende stap: eerste echte collector implementeren — voorstel `Get-HKBaseline` (nulmeting) of `Test-HKAuditConfig` (want andere collectors leunen op de auditstatus) — plan bespreken en akkoord afwachten voor het bouwen begint.
 
 ## Open vragen (uit PRD, nog niet beantwoord)
 
