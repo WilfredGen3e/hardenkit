@@ -7,7 +7,9 @@ function Export-HKData {
         Dit is de enige functie die een engineer of de RMM daadwerkelijk aanroept (dagelijks,
         als SYSTEM) — de losse Get-HK*-functies zijn interne bouwstenen. Bepaalt de hostrol
         (Get-HKHostRole); op een DC worden Test-HKAuditConfig, Get-HKBaseline, Get-HKNtlmUsage,
-        Get-HKLdapBinding, Get-HKKerberos en Get-HKDomainHealth aangeroepen. Eventlog-collectors
+        Get-HKLdapBinding, Get-HKKerberos, Get-HKDomainHealth en Get-HKOutbound aangeroepen
+        (Get-HKOutbound is een momentopname, geen incrementele lezing — geen RecordId nodig).
+        Eventlog-collectors
         lezen incrementeel vanaf de RecordId's in het statusbestand van de vorige run — let op:
         meerdere collectors lezen (deels) hetzelfde log maar voor verschillende event-ID's
         (Get-HKNtlmUsage/Get-HKKerberos/Get-HKDomainHealth op Security;
@@ -95,6 +97,7 @@ function Export-HKData {
         ldapBinding  = 'ok'
         kerberos     = 'ok'
         domainHealth = 'ok'
+        outbound     = 'ok'
     }
 
     $auditConfig = $null
@@ -103,6 +106,7 @@ function Export-HKData {
     $ldapBinding = $null
     $kerberos = $null
     $domainHealth = $null
+    $outbound = $null
 
     if ($role -eq 'DC') {
         try {
@@ -170,6 +174,17 @@ function Export-HKData {
             Write-Warning "Export-HKData: Get-HKDomainHealth faalde: $_"
             $collectorStatus.domainHealth = 'onbekend'
         }
+
+        try {
+            $outbound = Get-HKOutbound -ComputerName $ComputerName
+            if (@($outbound.Collectors.PSObject.Properties | Where-Object Value -eq 'onbekend').Count -gt 0) {
+                $collectorStatus.outbound = 'onbekend'
+            }
+        }
+        catch {
+            Write-Warning "Export-HKData: Get-HKOutbound faalde: $_"
+            $collectorStatus.outbound = 'onbekend'
+        }
     }
     else {
         Write-Warning "Export-HKData: host-rol is '$role', fase 0 ondersteunt alleen DC's. Geen collectors uitgevoerd."
@@ -191,6 +206,9 @@ function Export-HKData {
     }
     if ($domainHealth) {
         foreach ($row in @($domainHealth.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
+    }
+    if ($outbound) {
+        foreach ($row in @($outbound.Findings)) { $findings.Add((ConvertTo-HKFindingRecord -InputObject $row)) }
     }
 
     $windowFromUtc = if ($previousState.runCompletedUtc) { [datetime]$previousState.runCompletedUtc } else { $null }

@@ -124,6 +124,14 @@ Describe 'Export-HKData' {
                     LastDirectoryServiceRecordId  = 1200
                 }
             }
+            Mock -ModuleName HardenKit Get-HKOutbound {
+                [pscustomobject]@{
+                    Collectors = [pscustomobject]@{ Connections = 'ok' }
+                    Findings   = @(
+                        [pscustomobject]@{ Measure = 'outbound'; AccountName = $null; AccountSid = $null; ClientFqdn = 'update.microsoft.com'; ClientIp = '20.0.0.1'; Target = 'svchost'; Count = 3; FirstSeenUtc = [datetime]'2026-10-01T06:00:00Z'; LastSeenUtc = [datetime]'2026-10-01T06:00:00Z' }
+                    )
+                }
+            }
         }
 
         It 'schrijft het dagbestand en het statusbestand' {
@@ -140,7 +148,8 @@ Describe 'Export-HKData' {
             $result.Collectors.ldapBinding | Should -Be 'ok'
             $result.Collectors.kerberos | Should -Be 'ok'
             $result.Collectors.domainHealth | Should -Be 'ok'
-            $result.FindingsCount | Should -Be 4
+            $result.Collectors.outbound | Should -Be 'ok'
+            $result.FindingsCount | Should -Be 5
         }
 
         It 'schrijft een dagbestand volgens het PRD-schema' {
@@ -151,10 +160,11 @@ Describe 'Export-HKData' {
             $data.client | Should -Be 'KLANT01'
             $data.host | Should -Be 'dc01.contoso.com'
             $data.role | Should -Be 'DC'
-            $data.findings.Count | Should -Be 4
+            $data.findings.Count | Should -Be 5
             ($data.findings | Where-Object measure -eq 'ntlmv1').account.name | Should -Be 'svc_scan'
             ($data.findings | Where-Object measure -eq 'missing_spn').target | Should -Be 'HTTP/missingspn.contoso.com'
             ($data.findings | Where-Object measure -eq 'lockouts').client.fqdn | Should -Be 'WKS01'
+            ($data.findings | Where-Object measure -eq 'outbound').target | Should -Be 'svchost'
             $data.baseline.OperatingSystem.Caption | Should -Be 'Windows Server 2022'
         }
 
@@ -236,6 +246,9 @@ Describe 'Export-HKData' {
             Mock -ModuleName HardenKit Get-HKDomainHealth {
                 [pscustomobject]@{ Collectors = [pscustomobject]@{ SecurityLog = 'ok'; SystemLog = 'ok'; DirectoryServiceLog = 'ok' }; Findings = @(); UnknownSubnetsDailySummary = @(); LastSecurityRecordId = 1; LastSystemRecordId = 1; LastDirectoryServiceRecordId = 1 }
             }
+            Mock -ModuleName HardenKit Get-HKOutbound {
+                [pscustomobject]@{ Collectors = [pscustomobject]@{ Connections = 'ok' }; Findings = @() }
+            }
         }
 
         It 'breekt de run niet af en markeert alleen ntlmUsage als onbekend' {
@@ -246,6 +259,7 @@ Describe 'Export-HKData' {
             $result.Collectors.ldapBinding | Should -Be 'ok'
             $result.Collectors.kerberos | Should -Be 'ok'
             $result.Collectors.domainHealth | Should -Be 'ok'
+            $result.Collectors.outbound | Should -Be 'ok'
         }
     }
 
@@ -263,6 +277,7 @@ Describe 'Export-HKData' {
             Mock -ModuleName HardenKit Get-HKLdapBinding { }
             Mock -ModuleName HardenKit Get-HKKerberos { }
             Mock -ModuleName HardenKit Get-HKDomainHealth { }
+            Mock -ModuleName HardenKit Get-HKOutbound { }
         }
 
         It 'markeert alle collectors als onbekend zonder ze aan te roepen' {
@@ -273,6 +288,7 @@ Describe 'Export-HKData' {
             $result.Collectors.ldapBinding | Should -Be 'onbekend'
             $result.Collectors.kerberos | Should -Be 'onbekend'
             $result.Collectors.domainHealth | Should -Be 'onbekend'
+            $result.Collectors.outbound | Should -Be 'onbekend'
             $result.FindingsCount | Should -Be 0
 
             Should -Invoke -ModuleName HardenKit Test-HKAuditConfig -Times 0
