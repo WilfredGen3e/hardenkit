@@ -92,6 +92,28 @@ variabele vlak vóór de `Mock`-aanroep en laat de mock-scriptblock alleen die v
 teruggeven (closures over variabelen werken wél betrouwbaar).
 **Waar gezien:** eerste opzet van `Get-HKLdapBinding.Tests.ps1`.
 
+### Een `It`-blok met `</script>` letterlijk in de testnaam breekt Pester 6 zelf
+**Wat:** `It 'doet iets met </script> erin' { 1 | Should -Be 1 }` faalt met
+`CommandNotFoundException: The term '$/script' is not recognized...` — een bug in Pester 6 zelf
+(losse repro met een triviale testbody bevestigt dit, niets met de eigen code te maken), niet
+iets om tijd in te steken om te doorgronden.
+**Fix:** geen letterlijke `</script>`/vergelijkbare HTML-tag-syntax in een testnaam; parafraseer
+("...de scripttag niet voortijdig sluiten" i.p.v. "...de `</script>`-tag niet voortijdig
+sluiten"). De test zelf (de body) kan zulke strings gewoon verwerken; alleen de titel breekt.
+**Waar gezien:** `New-HKReport.Tests.ps1`, test van `ConvertTo-HKReportHtml`'s
+JSON-escaping.
+
+### `@($hashtable[$ontbrekendeKey])` is weer de `@($null)`-valkuil, nu via een hashtable-lookup
+**Wat:** dezelfde "`@($null)` is een array mét één `$null`-element, niet leeg"-regel (zie
+hierboven) sloeg hier toe via een andere route: `$findingsByMeasure[$measure]` op een
+niet-bestaande key geeft `$null`, en `@(...)` daaromheen "repareert" dat niet. Gaf een
+`foreach`-loop die één keer met een `$null`-element draaide, en crashte zodra er een
+member/property op aangeroepen werd (`$_.PSObject.Properties...` op `$null`).
+**Fix:** eerst `.ContainsKey($measure)` checken, pas dan `@($hashtable[$measure])`; anders `@()`.
+**Waar gezien:** `Resolve-HKReportModel` — drie plekken (per-maatregel findings, de
+missing_spn/ntlm_8004-correlatie, de outbound-groepering) hadden deze bug, gevonden door de
+"Groen zonder findings"-test (niet door de tests die toevallig wél findings hadden).
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
@@ -139,3 +161,30 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
   `netlogon.log` (tekstbestand, niet het eventlog), wat fase 0 nu niet parset.
 - DFSR-replicatiefouten (los van de Directory Service-events 1311/1865/2042 die wél gelezen
   worden) worden in fase 0 niet gelezen — PRD noemt dit als "o.a.", dus mogelijk gat.
+
+## Bekende vereenvoudigingen in New-HKReport (fase 0)
+
+Dit zijn bewuste, gedocumenteerde scope-keuzes in `Resolve-HKReportModel` — geen bugs, maar wel
+dingen om tegen echte pilotdata te toetsen en eventueel te verfijnen:
+
+- **Geen automatische Rood-status.** De PRD-voorwaarde voor Rood ("bronnen die niet zonder meer
+  op te lossen zijn, oude apparatuur, leverancier") is met alleen eventdata niet vast te stellen
+  zonder CMDB-kennis. Fase 0 geeft bevindingen altijd Oranje met een toelichting dat een
+  engineer beoordeelt of de bron vervangbaar is; Rood is een bewust handmatige vervolgstap.
+- **Drempelwaarden (`-MissingSpnThreshold`, `-LockoutThreshold`, default 5) zijn nog niet
+  toegepast in de statuslogica** — de parameters bestaan, maar `Resolve-HKReportModel` filtert
+  er nog niet mee (alle bevindingen tellen nu even zwaar, ongeacht aantal). PRD noemt de
+  drempelwaarde zelf ook nog als open vraag; dit verder uitwerken zodra die beantwoord is.
+- **Correlatie "NTLM-fallback door ontbrekende SPN"** matcht alleen op de genormaliseerde
+  servicenaam, niet ook op dezelfde client (zie `ConvertTo-HKNormalizedSpnTarget`) — 4769 geeft
+  een client-IP, 8004 een workstation-naam, niet betrouwbaar te vergelijken zonder DNS.
+- **Correlatie "één oorzaak, meerdere effecten"** (NTLM-volume + Netlogon-verzadiging;
+  tijdsafwijking + Kerberos-fouten) is alleen een tekstuele notitie, geen echte samenvoeging tot
+  één bevinding — fijnmazige tijdreeks-correlatie is niet gebouwd in fase 0.
+- **DC-compleetheid is een proxy** (aantal dagbestanden >= `-MinimumDays`), geen controle op
+  aaneengesloten dagen zonder gaten.
+- **Gemeten periode per maatregel is in fase 0 het globale kalenderbereik** (vroegste
+  window.from tot laatste window.to over alle bestanden), niet per maatregel geslicet op de
+  dagen waarop de onderliggende collector specifiek 'ok' was. PRD zegt letterlijk "het rapport
+  toont per maatregel de werkelijke gemeten periode" — dit is dus een vereenvoudiging t.o.v. de
+  letterlijke tekst, bewust gekozen om scope behapbaar te houden.
