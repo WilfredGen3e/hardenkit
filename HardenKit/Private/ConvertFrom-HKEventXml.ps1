@@ -33,18 +33,25 @@
     $doc = [xml]$Xml
     $system = $doc.Event.System
 
+    # Klassieke logs (Directory Service, Netlogon in System) hebben vaak <Data> zonder Name:
+    # die op positie bewaren als '#0', '#1', ... (index binnen alle Data-elementen), in plaats
+    # van weggooien.
     $eventData = @{}
-    foreach ($data in $doc.Event.EventData.Data) {
-        if ($data.Name) {
-            $eventData[$data.Name] = $data.'#text'
-        }
+    $index = 0
+    foreach ($data in @($doc.Event.EventData.ChildNodes | Where-Object { $_.LocalName -eq 'Data' })) {
+        $value = if ($data.IsEmpty -or $data.InnerText -eq '') { $null } else { $data.InnerText }
+        $name = $data.GetAttribute('Name')
+        if ($name) { $eventData[$name] = $value } else { $eventData["#$index"] = $value }
+        $index++
     }
 
+    # InnerText i.p.v. de property zelf: <EventID Qualifiers="16384">2889</EventID> (klassieke
+    # providers) geeft anders een XmlElement terug in plaats van een string (gezien op lab-DC).
     [pscustomobject]@{
-        TimeCreatedUtc = ([datetime]$system.TimeCreated.SystemTime).ToUniversalTime()
-        EventRecordId  = [long]$system.EventRecordID
-        EventId        = [int]$system.EventID
-        Computer       = $system.Computer
+        TimeCreatedUtc = ([datetime]$system.TimeCreated.GetAttribute('SystemTime')).ToUniversalTime()
+        EventRecordId  = [long]$system.SelectSingleNode("*[local-name()='EventRecordID']").InnerText
+        EventId        = [int]$system.SelectSingleNode("*[local-name()='EventID']").InnerText
+        Computer       = $system.SelectSingleNode("*[local-name()='Computer']").InnerText
         EventData      = $eventData
     }
 }

@@ -159,6 +159,17 @@ hoofdletterongevoelig herkennen; achtervoegsel strippen. Echte lab-uitvoer als f
 letterlijk als fixture opnemen.
 **Waar gezien:** `Get-HKBaseline` op lab-DC DEMO-DC-001, Server 2022 EN (02-10-2026).
 
+### `<EventID Qualifiers="...">` geeft een XmlElement, geen string
+**Wat:** events van klassieke providers (Directory Service, Netlogon/KDC in System) hebben
+`<EventID Qualifiers="16384">2889</EventID>`. PowerShells XML-adapter geeft voor een element
+mét attribuut het XmlElement terug in plaats van de tekst, dus `[int]$system.EventID` faalde
+("Cannot convert System.Xml.XmlElement ... to System.Int32") en `Get-HKLdapBinding` werd
+`onbekend`. De fixtures hadden alleen Security-events (zonder Qualifiers).
+**Fix:** `ConvertFrom-HKEventXml` leest EventID/EventRecordID/Computer via `.InnerText`.
+Tegelijk: `<Data>` zonder `Name` (gebruikelijk bij klassieke providers) wordt niet meer
+weggegooid maar op positie bewaard als `#0`, `#1`, ...
+**Waar gezien:** `Export-HKData` op lab-DC DEMO-DC-001 (02-10-2026).
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
@@ -193,7 +204,9 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
   matig zeker (8004 is minder uitgebreid publiek gedocumenteerd dan 4624/4776).
 - EventData-veldnamen events 2887/2889/3039/3041 (Directory Service, LDAP signing/channel
   binding): `Client`, `IdentityUser`, `Count` — **minst zekere aanname in dit project tot nu
-  toe**, eerst valideren. Ook te bevestigen: of 2887/3041 echt periodieke 24-uurs tellingen zijn
+  toe**, eerst valideren. Waarschijnlijk hebben deze klassieke events helemaal geen namen op
+  `<Data>` (dan staan de waarden als `#0`, `#1`, ... in EventData en moet de collector op
+  positie mappen). Hetzelfde geldt mogelijk voor 5827/5828 en KDC 11/39-41. Ook te bevestigen: of 2887/3041 echt periodieke 24-uurs tellingen zijn
   zonder per-client detail (huidige aanname) of toch per-client data bevatten.
 - EventData-veldnamen Security-events 4768/4769 (`TargetUserName`, `TargetSid`, `ServiceName`,
   `Status`/`ResultCode`, `TicketEncryptionType`, `IpAddress`) — redelijk zeker, net zo goed

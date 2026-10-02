@@ -49,7 +49,34 @@ InModuleScope HardenKit {
             $result.EventData['IpPort'] | Should -BeNullOrEmpty
         }
 
-        It 'slaat Data-elementen zonder Name-attribuut over' {
+        It 'parsed een EventID met Qualifiers-attribuut (klassieke provider)' {
+            $xml = @'
+<Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
+  <System>
+    <Provider Name="Microsoft-Windows-ActiveDirectory_DomainService" />
+    <EventID Qualifiers="16384">2889</EventID>
+    <TimeCreated SystemTime="2026-10-02T08:00:00.0000000Z" />
+    <EventRecordID>3130</EventRecordID>
+    <Channel>Directory Service</Channel>
+    <Computer>DEMO-DC-001.demo.local</Computer>
+  </System>
+  <EventData>
+    <Data>10.0.0.50:51234</Data>
+    <Data>DEMO\jdoe</Data>
+    <Data>0</Data>
+  </EventData>
+</Event>
+'@
+            $result = ConvertFrom-HKEventXml -Xml $xml
+            $result.EventId | Should -Be 2889
+            $result.EventRecordId | Should -Be 3130
+            $result.Computer | Should -Be 'DEMO-DC-001.demo.local'
+            $result.EventData['#0'] | Should -Be '10.0.0.50:51234'
+            $result.EventData['#1'] | Should -Be 'DEMO\jdoe'
+            $result.EventData['#2'] | Should -Be '0'
+        }
+
+        It 'bewaart Data-elementen zonder Name-attribuut op positie' {
             $xml = @'
 <Event xmlns="http://schemas.microsoft.com/win/2004/08/events/event">
   <System>
@@ -67,6 +94,7 @@ InModuleScope HardenKit {
             $result = ConvertFrom-HKEventXml -Xml $xml
             $result.EventData.Keys | Should -Not -Contain ''
             $result.EventData['TargetUserName'] | Should -Be 'jdoe'
+            $result.EventData['#1'] | Should -Be 'GeenNaamAttribuut'
         }
     }
 
