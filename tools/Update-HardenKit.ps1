@@ -107,16 +107,28 @@ try {
 
     if (-not $PSCmdlet.ShouldProcess($moduleDir, "Vervangen door commit $shortSha")) { return }
 
-    # 5. Wisselen: huidige -> previous, nieuw -> HardenKit.
+    # 5. Wisselen via kopiëren, niet via Move-Item op de map zelf: een map hernoemen faalt met
+    #    "Access denied" zodra een Verkenner-venster of andere shell erin staat (gezien op de
+    #    lab-DC). De inhoud vervangen lukt dan wel.
     Remove-Module HardenKit -ErrorAction SilentlyContinue
     if (Test-Path $previousDir) { Remove-Item $previousDir -Recurse -Force }
-    if (Test-Path $moduleDir) { Move-Item $moduleDir $previousDir }
+    if (Test-Path $moduleDir) {
+        Copy-Item $moduleDir $previousDir -Recurse
+    }
+    else {
+        New-Item -ItemType Directory -Path $moduleDir | Out-Null
+    }
     try {
-        Move-Item $newModuleDir $moduleDir
+        Get-ChildItem $moduleDir -Force | Remove-Item -Recurse -Force
+        Copy-Item (Join-Path $newModuleDir '*') $moduleDir -Recurse
     }
     catch {
-        if (Test-Path $previousDir) { Move-Item $previousDir $moduleDir }
-        throw "Plaatsen van de nieuwe versie mislukt, vorige versie teruggezet: $_"
+        $fout = $_
+        if (Test-Path $previousDir) {
+            Get-ChildItem $moduleDir -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item (Join-Path $previousDir '*') $moduleDir -Recurse
+        }
+        throw "Plaatsen van de nieuwe versie mislukt, vorige versie teruggezet: $fout"
     }
 
     [pscustomobject]@{
