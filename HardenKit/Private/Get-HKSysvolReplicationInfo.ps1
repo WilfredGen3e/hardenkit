@@ -1,4 +1,4 @@
-function Get-HKSysvolReplicationInfo {
+﻿function Get-HKSysvolReplicationInfo {
     <#
     .SYNOPSIS
         Bepaalt welke technologie SYSVOL repliceert (DFSR of het verouderde FRS) en of SYSVOL

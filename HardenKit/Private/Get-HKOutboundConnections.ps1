@@ -1,4 +1,4 @@
-function Get-HKOutboundConnections {
+﻿function Get-HKOutboundConnections {
     <#
     .SYNOPSIS
         Momentopname van actieve uitgaande TCP-verbindingen, met proces en DNS-naam.

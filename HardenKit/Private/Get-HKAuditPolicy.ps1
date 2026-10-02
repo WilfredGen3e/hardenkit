@@ -1,4 +1,4 @@
-function Get-HKAuditPolicy {
+﻿function Get-HKAuditPolicy {
     <#
     .SYNOPSIS
         Leest het succes/faal-auditniveau van de auditpol-subcategorieën die HardenKit nodig heeft.
@@ -39,10 +39,21 @@ function Get-HKAuditPolicy {
         throw "Get-HKAuditPolicy ondersteunt alleen de lokale machine (auditpol /r heeft geen betrouwbare remote-optie)."
     }
 
+    # Subcategorienamen zijn gelokaliseerd ("Logon" heet op een Nederlandstalige Windows
+    # "Aanmelden" en geeft dan auditpol-fout 0x57); de GUID's zijn taalonafhankelijk. De
+    # Engelse naam blijft de sleutel in het resultaat.
+    $subcategoryGuid = @{
+        'Logon'                              = '{0CCE9215-69AE-11D9-BED3-505054503030}'
+        'Credential Validation'              = '{0CCE923F-69AE-11D9-BED3-505054503030}'
+        'Kerberos Service Ticket Operations' = '{0CCE9240-69AE-11D9-BED3-505054503030}'
+        'Kerberos Authentication Service'    = '{0CCE9242-69AE-11D9-BED3-505054503030}'
+    }
+
     $result = @{}
 
     foreach ($name in $Subcategory) {
-        $csv = & auditpol.exe /get /subcategory:"$name" /r 2>&1
+        $target = if ($subcategoryGuid.ContainsKey($name)) { $subcategoryGuid[$name] } else { $name }
+        $csv = & auditpol.exe /get /subcategory:"$target" /r 2>&1
         if ($LASTEXITCODE -ne 0) {
             throw "auditpol.exe gaf exitcode $LASTEXITCODE voor subcategorie '$name': $csv"
         }

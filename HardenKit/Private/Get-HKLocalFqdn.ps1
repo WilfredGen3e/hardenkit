@@ -1,4 +1,4 @@
-function Get-HKLocalFqdn {
+﻿function Get-HKLocalFqdn {
     <#
     .SYNOPSIS
         Bepaalt de FQDN van de lokale machine.

@@ -1,4 +1,4 @@
-function ConvertTo-HKAggregate {
+﻿function ConvertTo-HKAggregate {
     <#
     .SYNOPSIS
         Aggregeert losse findingregels tot het PRD-dataformaat: telling + eerste/laatste keer

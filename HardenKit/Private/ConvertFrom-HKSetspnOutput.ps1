@@ -1,4 +1,4 @@
-function ConvertFrom-HKSetspnOutput {
+﻿function ConvertFrom-HKSetspnOutput {
     <#
     .SYNOPSIS
         Parsed de tekstuitvoer van 'setspn -X' naar een lijst van dubbele SPN's met accounts.

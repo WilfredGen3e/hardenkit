@@ -124,6 +124,28 @@ draaien zijn pas gevalideerd na een run op Windows. Draai de volledige suite op 
 Windows-machine vóór een release/pilot, niet alleen op macOS.
 **Waar gezien:** `HardenKit.Tests.ps1`, eerste Pester-run op Windows (02-10-2026).
 
+### Scriptbestanden zonder UTF-8 BOM laden niet in Windows PowerShell 5.1
+**Wat:** alle `.ps1`/`.psm1`/`.psd1` waren UTF-8 zonder BOM. pwsh 7 leest dat goed, maar
+Windows PowerShell 5.1 (wat een DC draait) leest het als Windows-1252. Een `—` (bytes
+`E2 80 94`) wordt dan `â€"`, en dat laatste teken telt in PowerShell als aanhalingsteken: de
+string sluit voortijdig en `ConvertTo-HKReportHtml.ps1` gaf parse-fouten, waardoor de hele
+module niet laadde. Alle tests draaiden op pwsh 7 en zagen het dus niet.
+**Fix:** UTF-8 met BOM voor alle scriptbestanden, plus een regressietest in
+`HardenKit.Tests.ps1` die elk bestand op de BOM controleert. Na elke wijziging ook
+`powershell.exe -Command "Import-Module ...\HardenKit.psd1"` (5.1) draaien, niet alleen pwsh.
+**Waar gezien:** eerste import in Windows PowerShell 5.1 (02-10-2026).
+
+### auditpol-subcategorienamen zijn gelokaliseerd
+**Wat:** `auditpol /get /subcategory:"Logon"` geeft op een Nederlandstalige Windows fout
+`0x57` (ongeldige parameter): daar heet het "Aanmelden". `Test-HKAuditConfig` zette daardoor
+alle auditpol-afhankelijke maatregelen op Onbekend. Bevestigd met `auditpol /list
+/subcategory:* /v` op een NL-machine.
+**Fix:** `Get-HKAuditPolicy` vraagt op met de taalonafhankelijke GUID (de Engelse naam blijft
+de sleutel in het resultaat). `ConvertFrom-HKAuditPolicyCsv` gebruikt bij voorkeur de numerieke
+`Setting Value`, met Engelse/Nederlandse tekst als terugval, en gooit een fout bij onbekende
+tekst zodat het Onbekend wordt in plaats van onterecht NietVoldaan.
+**Waar gezien:** smoke-test van `Test-HKAuditConfig` op een NL-Windows 11 (02-10-2026).
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
@@ -147,9 +169,12 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
 - Registrynamen: `AuditNTLMInDomain`, `16 LDAP Interface Events`, `LdapEnforceChannelBinding`,
   `LDAPServerIntegrity`, `RestrictSendingNTLMTraffic`, `RestrictReceivingNTLMTraffic`,
   `SysvolReady`.
-- Engelstalige tool-uitvoer die we parsen: `auditpol.exe` (`Success`/`Failure`/
-  `Success and Failure`/`No Auditing`), `setspn.exe -X`. Op een Nederlandstalige Windows-
-  installatie kan deze tekst afwijken.
+- `auditpol.exe /get /subcategory:{GUID} /r`: bevat de uitvoer de kolom `Setting Value`
+  (numeriek, taalonafhankelijk)? Zo niet, kloppen de Nederlandse terugvalteksten (`Geslaagd`/
+  `Mislukt`/`Geslaagd en mislukt`/`Geen controle`)? Elevated op een NL- én een EN-machine
+  draaien. Subcategorienamen zelf zijn bevestigd gelokaliseerd (zie hierboven), daarom GUID's.
+- `setspn.exe -X`-uitvoer: Engelstalig geparsed; op een Nederlandstalige installatie kan deze
+  tekst afwijken.
 - EventData-veldnamen event 8004 (NTLM/Operational): `UserName`, `Workstation`, `ServerName` —
   matig zeker (8004 is minder uitgebreid publiek gedocumenteerd dan 4624/4776).
 - EventData-veldnamen events 2887/2889/3039/3041 (Directory Service, LDAP signing/channel

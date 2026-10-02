@@ -1,4 +1,4 @@
-function Get-HKLdapBinding {
+﻿function Get-HKLdapBinding {
     <#
     .SYNOPSIS
         Meet unsigned/simple LDAP-binds en ontbrekende channel binding.

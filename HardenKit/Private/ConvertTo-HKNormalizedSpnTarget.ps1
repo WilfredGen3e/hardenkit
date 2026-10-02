@@ -1,4 +1,4 @@
-function ConvertTo-HKNormalizedSpnTarget {
+﻿function ConvertTo-HKNormalizedSpnTarget {
     <#
     .SYNOPSIS
         Normaliseert een SPN of servernaam tot het kale servicedeel, voor correlatie tussen

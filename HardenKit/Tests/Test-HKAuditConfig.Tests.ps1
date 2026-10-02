@@ -1,4 +1,4 @@
-#Requires -Modules Pester
+﻿#Requires -Modules Pester
 
 # Module importeren op scriptniveau (niet in BeforeAll): InModuleScope hieronder heeft de
 # module nodig tijdens Pester's Discovery-fase, die vóór BeforeAll/Run-blokken draait.
@@ -59,6 +59,34 @@ InModuleScope HardenKit {
 
         It 'gooit een fout bij lege invoer' {
             { , @() | ConvertFrom-HKAuditPolicyCsv } | Should -Throw
+        }
+
+        It 'gebruikt de numerieke Setting Value boven de (gelokaliseerde) tekst' {
+            $csv = @(
+                '"Machine Name","Policy Target","Subcategory","Subcategory GUID","Inclusion Setting","Exclusion Setting","Setting Value"'
+                '"DC01","System","Aanmelden","{0CCE9215-69AE-11D9-BED3-505054503030}","Iets onbekends","","2"'
+            )
+            $result = $csv | ConvertFrom-HKAuditPolicyCsv
+            $result.Success | Should -BeFalse
+            $result.Failure | Should -BeTrue
+        }
+
+        It 'herkent Nederlandstalige "Geslaagd en mislukt"' {
+            $csv = @(
+                '"Machine Name","Policy Target","Subcategory","Subcategory GUID","Inclusion Setting","Exclusion Setting"'
+                '"DC01","System","Aanmelden","{...}","Geslaagd en mislukt",""'
+            )
+            $result = $csv | ConvertFrom-HKAuditPolicyCsv
+            $result.Success | Should -BeTrue
+            $result.Failure | Should -BeTrue
+        }
+
+        It 'gooit een fout bij een onbekende tekst zonder Setting Value (wordt Onbekend, niet NietVoldaan)' {
+            $csv = @(
+                '"Machine Name","Policy Target","Subcategory","Subcategory GUID","Inclusion Setting","Exclusion Setting"'
+                '"DC01","System","Anmeldung","{...}","Erfolg",""'
+            )
+            { $csv | ConvertFrom-HKAuditPolicyCsv } | Should -Throw -ExpectedMessage '*Onbekende auditpol-waarde*'
         }
     }
 

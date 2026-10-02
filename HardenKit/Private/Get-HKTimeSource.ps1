@@ -1,4 +1,4 @@
-function Get-HKTimeSource {
+﻿function Get-HKTimeSource {
     <#
     .SYNOPSIS
         Leest de geconfigureerde tijdbron via w32tm.

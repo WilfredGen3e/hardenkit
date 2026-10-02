@@ -1,4 +1,4 @@
-function Get-HKSmbNtlmConfig {
+﻿function Get-HKSmbNtlmConfig {
     <#
     .SYNOPSIS
         Leest LmCompatibilityLevel, NTLM-verzendrestricties, SMB1-status en Print Spooler-status.

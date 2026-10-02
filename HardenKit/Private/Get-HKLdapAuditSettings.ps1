@@ -1,4 +1,4 @@
-function Get-HKLdapAuditSettings {
+﻿function Get-HKLdapAuditSettings {
     <#
     .SYNOPSIS
         Leest de LDAP-signing-vereiste, het LDAP-diagnostiekniveau en de channel binding-modus.

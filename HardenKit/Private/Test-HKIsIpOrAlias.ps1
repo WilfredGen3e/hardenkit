@@ -1,4 +1,4 @@
-function Test-HKIsIpOrAlias {
+﻿function Test-HKIsIpOrAlias {
     <#
     .SYNOPSIS
         Bepaalt of een NTLM-doelnaam een IP-adres of een alias is in plaats van een FQDN.

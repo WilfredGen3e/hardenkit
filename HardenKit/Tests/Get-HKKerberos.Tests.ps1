@@ -1,4 +1,4 @@
-#Requires -Modules Pester
+﻿#Requires -Modules Pester
 
 $script:ModuleRoot = Split-Path -Parent $PSScriptRoot
 $script:ManifestPath = Join-Path $script:ModuleRoot 'HardenKit.psd1'

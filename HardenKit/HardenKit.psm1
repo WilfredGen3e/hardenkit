@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 
 # Root module: dot-sourcet alle Private/ en Public/ functies en exporteert alleen de Public API.
 # HardenKit is alleen-lezen; er wordt hier niets aan het domein gewijzigd.

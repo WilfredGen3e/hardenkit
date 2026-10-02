@@ -1,4 +1,4 @@
-function Get-HKOutbound {
+﻿function Get-HKOutbound {
     <#
     .SYNOPSIS
         Momentopname van uitgaande verbindingen vanaf de DC, met proces en DNS-naam.

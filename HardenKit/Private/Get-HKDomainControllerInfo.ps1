@@ -1,4 +1,4 @@
-function Get-HKDomainControllerInfo {
+﻿function Get-HKDomainControllerInfo {
     <#
     .SYNOPSIS
         Haalt de lijst van domain controllers in het domein op en bepaalt of deze host de

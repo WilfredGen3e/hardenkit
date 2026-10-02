@@ -20,10 +20,24 @@ werken vóórdat er een klant-DC aangeraakt wordt.
   genereren. Twee DC's is beter: dan test je ook de DC-compleetheid in het rapport.
 - Bij voorkeur ook een Nederlandstalige DC als klanten die hebben (auditpol-uitvoer is
   taalafhankelijk).
-- Module kopiëren naar de DC, bv. `C:\ProgramData\HardenKit\HardenKit\`.
+- Alleen de map `HardenKit\` is nodig (`Tests\` mag mee, wordt op de DC niet gebruikt). Op de
+  werkplek zippen:
+  ```powershell
+  Compress-Archive -Path D:\git\claudeprojects\hardenkit\HardenKit -DestinationPath $env:USERPROFILE\Desktop\HardenKit.zip -Force
+  ```
+- Op de DC uitpakken naar `C:\ProgramData\HardenKit\`, zodat het manifest op
+  `C:\ProgramData\HardenKit\HardenKit\HardenKit.psd1` staat. Na kopiëren via RDP/download
+  eerst de Mark-of-the-Web verwijderen, anders weigert de execution policy de scripts:
+  ```powershell
+  Get-ChildItem C:\ProgramData\HardenKit -Recurse | Unblock-File
+  ```
+- **Elevated** Windows PowerShell 5.1 openen (geen pwsh 7, de DC-doelgroep is 5.1;
+  auditpol en het Security-log vereisen admin):
 
 ```powershell
+Set-ExecutionPolicy -Scope Process Bypass -Force   # ongesigneerd, alleen deze sessie
 Import-Module C:\ProgramData\HardenKit\HardenKit\HardenKit.psd1 -Force
+Get-Command -Module HardenKit                      # 9 functies verwacht
 ```
 
 ### A2. Nulmeting vóór aanpassingen

@@ -1,4 +1,4 @@
-function Export-HKData {
+﻿function Export-HKData {
     <#
     .SYNOPSIS
         Roept alle fase 0-collectors aan en schrijft het resultaat als JSON weg.

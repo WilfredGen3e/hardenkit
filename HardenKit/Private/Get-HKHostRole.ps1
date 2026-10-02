@@ -1,4 +1,4 @@
-function Get-HKHostRole {
+﻿function Get-HKHostRole {
     <#
     .SYNOPSIS
         Bepaalt of een host een domain controller of member server is.

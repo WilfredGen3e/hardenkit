@@ -1,4 +1,4 @@
-function ConvertFrom-HKEventXml {
+﻿function ConvertFrom-HKEventXml {
     <#
     .SYNOPSIS
         Parsed de XML-representatie van één Windows-event naar een plat object.

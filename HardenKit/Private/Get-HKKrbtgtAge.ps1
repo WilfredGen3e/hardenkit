@@ -1,4 +1,4 @@
-function Get-HKKrbtgtAge {
+﻿function Get-HKKrbtgtAge {
     <#
     .SYNOPSIS
         Bepaalt de leeftijd van het krbtgt-wachtwoord.

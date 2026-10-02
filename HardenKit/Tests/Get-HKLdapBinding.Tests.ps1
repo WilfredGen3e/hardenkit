@@ -1,4 +1,4 @@
-#Requires -Modules Pester
+﻿#Requires -Modules Pester
 
 # Module importeren op scriptniveau: zie docs/LESSONS.md / de andere testbestanden voor waarom
 # (InModuleScope heeft de module nodig tijdens Pester's Discovery-fase).

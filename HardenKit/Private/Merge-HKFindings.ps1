@@ -1,4 +1,4 @@
-function Merge-HKFindings {
+﻿function Merge-HKFindings {
     <#
     .SYNOPSIS
         Merget findingregels uit meerdere dagbestanden/DC's tot één set per unieke combinatie.

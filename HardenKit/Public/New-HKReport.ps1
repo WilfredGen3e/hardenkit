@@ -1,4 +1,4 @@
-function New-HKReport {
+﻿function New-HKReport {
     <#
     .SYNOPSIS
         Leest een map met JSON-dagbestanden van Export-HKData en schrijft één HTML-rapport.

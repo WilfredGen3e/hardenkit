@@ -1,4 +1,4 @@
-function ConvertTo-HKReportHtml {
+﻿function ConvertTo-HKReportHtml {
     <#
     .SYNOPSIS
         Rendert het rapportmodel (Resolve-HKReportModel) naar een zelfstandige HTML-pagina.

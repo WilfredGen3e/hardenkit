@@ -1,4 +1,4 @@
-function ConvertTo-HKHtmlEncoded {
+﻿function ConvertTo-HKHtmlEncoded {
     <#
     .SYNOPSIS
         HTML-encodeert een waarde, veilig voor $null.

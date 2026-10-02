@@ -1,4 +1,4 @@
-function Test-HKAuditConfig {
+﻿function Test-HKAuditConfig {
     <#
     .SYNOPSIS
         Controleert of de audit- en loginstellingen aanstaan die HardenKit nodig heeft.

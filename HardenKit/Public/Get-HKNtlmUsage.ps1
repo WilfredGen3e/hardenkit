@@ -1,4 +1,4 @@
-function Get-HKNtlmUsage {
+﻿function Get-HKNtlmUsage {
     <#
     .SYNOPSIS
         Meet NTLMv1/LM-gebruik en NTLM-authenticatie, inclusief NTLM naar IP of alias.

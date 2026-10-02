@@ -1,4 +1,4 @@
-#Requires -Modules Pester
+﻿#Requires -Modules Pester
 
 BeforeAll {
     $script:ModuleRoot = Split-Path -Parent $PSScriptRoot
@@ -30,6 +30,16 @@ Describe 'HardenKit module' {
         )
         $exported = (Get-Command -Module HardenKit).Name
         $exported | Sort-Object | Should -Be ($expected | Sort-Object)
+    }
+
+    It 'heeft een UTF-8 BOM op elk scriptbestand (anders leest Windows PowerShell 5.1 ze als ANSI)' {
+        $zonderBom = Get-ChildItem -Path $script:ModuleRoot -Recurse -Include '*.ps1', '*.psm1', '*.psd1' |
+            Where-Object {
+                $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+                -not ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
+            } |
+            ForEach-Object { $_.Name }
+        $zonderBom | Should -BeNullOrEmpty
     }
 
     It 'exporteert geen private helperfuncties' {

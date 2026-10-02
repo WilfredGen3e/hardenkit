@@ -1,4 +1,4 @@
-function Get-HKOperatingSystemInfo {
+﻿function Get-HKOperatingSystemInfo {
     <#
     .SYNOPSIS
         Leest OS-versie-informatie van een host.

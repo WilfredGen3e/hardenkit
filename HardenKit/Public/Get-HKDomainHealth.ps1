@@ -1,4 +1,4 @@
-function Get-HKDomainHealth {
+﻿function Get-HKDomainHealth {
     <#
     .SYNOPSIS
         Meet Netlogon-weigeringen, lockouts, onbekende subnetten, tijdsafwijking en replicatiefouten.

@@ -1,4 +1,4 @@
-@{
+﻿@{
     RootModule        = 'HardenKit.psm1'
     ModuleVersion     = '0.1.0'
     GUID              = '63b377f6-3344-43d7-a7aa-f357a359f7d1'

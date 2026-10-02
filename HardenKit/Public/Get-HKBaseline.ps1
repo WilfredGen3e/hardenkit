@@ -1,4 +1,4 @@
-function Get-HKBaseline {
+﻿function Get-HKBaseline {
     <#
     .SYNOPSIS
         Nulmeting van de DC-configuratie.

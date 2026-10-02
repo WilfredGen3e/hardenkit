@@ -1,4 +1,4 @@
-function Get-HKSecurityLogInfo {
+﻿function Get-HKSecurityLogInfo {
     <#
     .SYNOPSIS
         Leest grootte, recordaantal en de oudste gebeurtenis van het Security-eventlog.

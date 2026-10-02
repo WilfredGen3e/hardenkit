@@ -1,4 +1,4 @@
-function Resolve-HKReportModel {
+﻿function Resolve-HKReportModel {
     <#
     .SYNOPSIS
         Berekent het volledige rapportmodel (status per maatregel, "al stuk", correlaties,

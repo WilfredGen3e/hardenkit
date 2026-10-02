@@ -1,4 +1,4 @@
-function Get-HKKerberos {
+﻿function Get-HKKerberos {
     <#
     .SYNOPSIS
         Meet Kerberos RC4/DES-gebruik, ontbrekende SPN's, dubbele SPN's en zwakke certificaatmapping.

@@ -1,4 +1,4 @@
-function Get-HKWinEvent {
+﻿function Get-HKWinEvent {
     <#
     .SYNOPSIS
         Leest events uit een eventlog met een XPath-filter, optioneel incrementeel vanaf een

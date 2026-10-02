@@ -1,4 +1,4 @@
-function ConvertFrom-HKAuditPolicyCsv {
+﻿function ConvertFrom-HKAuditPolicyCsv {
     <#
     .SYNOPSIS
         Parsed de CSV-uitvoer van 'auditpol /get /subcategory:"<naam>" /r' naar succes/faal-vlaggen.
@@ -15,9 +15,10 @@ function ConvertFrom-HKAuditPolicyCsv {
         PSCustomObject met Success ([bool]) en Failure ([bool]).
 
     .NOTES
-        Fase 0. De waarde van 'Inclusion Setting' is Engelstalig op een Engelstalige Windows-
-        installatie; op een Nederlandstalige DC kan deze tekst afwijken. Nog te verifiëren op
-        een echte DC (zie open vragen in CLAUDE.md).
+        Fase 0. Gebruikt bij voorkeur de numerieke kolom 'Setting Value'; de tekst van
+        'Inclusion Setting' is gelokaliseerd en wordt alleen als terugval gebruikt (Engels en
+        Nederlands). Of 'Setting Value' in de /r-uitvoer zit en de exacte Nederlandse teksten
+        zijn nog te verifiëren op een echte DC (zie pilot-testlijst in docs/LESSONS.md).
     #>
     [CmdletBinding()]
     param(
@@ -39,10 +40,36 @@ function ConvertFrom-HKAuditPolicyCsv {
             throw "Geen auditpol-uitvoer om te parsen."
         }
 
-        $setting = $row.'Inclusion Setting'
+        # Voorkeur: de numerieke 'Setting Value' (bitmask 1 = succes, 2 = fout), die is
+        # taalonafhankelijk. Valt terug op de tekst van 'Inclusion Setting' (Engels/Nederlands).
+        $settingValue = $row.PSObject.Properties['Setting Value']
+        if ($settingValue -and "$($settingValue.Value)" -match '^\d+$') {
+            $value = [int]$settingValue.Value
+            return [pscustomobject]@{
+                Success = ($value -band 1) -ne 0
+                Failure = ($value -band 2) -ne 0
+            }
+        }
+
+        $setting = "$($row.'Inclusion Setting')".Trim()
+        $known = @{
+            'Success'             = @($true,  $false)
+            'Failure'             = @($false, $true)
+            'Success and Failure' = @($true,  $true)
+            'No Auditing'         = @($false, $false)
+            'Geslaagd'            = @($true,  $false)
+            'Mislukt'             = @($false, $true)
+            'Geslaagd en mislukt' = @($true,  $true)
+            'Geen controle'       = @($false, $false)
+        }
+        if (-not $known.ContainsKey($setting)) {
+            # Onbekende tekst niet als "uit" interpreteren: dan wordt het NietVoldaan i.p.v. Onbekend.
+            throw "Onbekende auditpol-waarde '$setting' (taal niet herkend)."
+        }
+
         [pscustomobject]@{
-            Success = $setting -in @('Success', 'Success and Failure')
-            Failure = $setting -in @('Failure', 'Success and Failure')
+            Success = $known[$setting][0]
+            Failure = $known[$setting][1]
         }
     }
 }

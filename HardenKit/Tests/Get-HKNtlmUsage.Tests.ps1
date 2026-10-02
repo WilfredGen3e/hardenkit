@@ -1,4 +1,4 @@
-#Requires -Modules Pester
+﻿#Requires -Modules Pester
 
 # Module importeren op scriptniveau (niet in BeforeAll): InModuleScope hieronder heeft de
 # module nodig tijdens Pester's Discovery-fase, die vóór BeforeAll/Run-blokken draait.

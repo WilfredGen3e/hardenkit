@@ -1,4 +1,4 @@
-function Get-HKNtlmAuditSetting {
+﻿function Get-HKNtlmAuditSetting {
     <#
     .SYNOPSIS
         Leest of "Audit NTLM authentication in this domain" aanstaat (basis voor event 8004).

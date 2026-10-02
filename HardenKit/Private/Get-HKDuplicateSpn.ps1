@@ -1,4 +1,4 @@
-function Get-HKDuplicateSpn {
+﻿function Get-HKDuplicateSpn {
     <#
     .SYNOPSIS
         Zoekt dubbele SPN's in het domein.

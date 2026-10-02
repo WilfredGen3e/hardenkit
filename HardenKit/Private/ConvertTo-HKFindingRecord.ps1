@@ -1,4 +1,4 @@
-function ConvertTo-HKFindingRecord {
+﻿function ConvertTo-HKFindingRecord {
     <#
     .SYNOPSIS
         Zet een intern geaggregeerde findingregel om naar het JSON-dataformaat uit de PRD.
