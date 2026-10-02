@@ -31,6 +31,9 @@ werken vóórdat er een klant-DC aangeraakt wordt.
   ```powershell
   Get-ChildItem C:\ProgramData\HardenKit -Recurse | Unblock-File
   ```
+- Lab/test met internet: kopieer daarnaast `tools\Update-HardenKit.ps1` naar
+  `C:\ProgramData\HardenKit\`. Daarmee haal je later een nieuwe versie op zonder opnieuw te
+  zippen (zie A7). Niet voor klant-DC's: daar blijft de RMM het kanaal (PRD).
 - **Elevated** Windows PowerShell 5.1 openen (geen pwsh 7, de DC-doelgroep is 5.1;
   auditpol en het Security-log vereisen admin):
 
@@ -134,6 +137,20 @@ Controleer:
       serialisatiebugs gevonden).
 - [ ] Geen merkbare CPU/geheugenpiek tijdens `Export-HKData`; duur van een run genoteerd.
 - [ ] EDR/AV heeft niet gealarmeerd of geblokkeerd.
+
+### A7. Module bijwerken in het lab
+
+```powershell
+C:\ProgramData\HardenKit\Update-HardenKit.ps1              # laatste commit op main
+C:\ProgramData\HardenKit\Update-HardenKit.ps1 -Ref 93ab452 # specifieke commit of tag
+Import-Module C:\ProgramData\HardenKit\HardenKit\HardenKit.psd1 -Force
+```
+
+Het script zet de commit om naar een vaste SHA, downloadt de zip, controleert dat de nieuwe
+versie in 5.1 laadt en wisselt dan pas. De vorige versie blijft in `HardenKit.previous\`;
+welke commit er staat, lees je in `HardenKit.installed.json`. `Data\` wordt niet aangeraakt.
+Terugdraaien: `HardenKit\` verwijderen en `HardenKit.previous\` terug hernoemen, of het script
+met de oude SHA als `-Ref` draaien.
 
 **Gate naar Deel B:** alle punten hierboven groen en de pilot-testlijst in `LESSONS.md`
 doorgewerkt.

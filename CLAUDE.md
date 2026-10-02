@@ -24,6 +24,8 @@ fixt.**
 - `docs/PRD.md` — volledige productvereisten (bron van waarheid voor scope/fasering).
 - `docs/LESSONS.md` — valkuilen en hoe we ze oplosten; checken/aanvullen bij elke nieuwe stap.
 - `docs/PILOT-RUNBOOK.md` — stappenplan lab-validatie en fase 0-pilot bij klanten.
+- `tools/Update-HardenKit.ps1` — los updatescript voor lab/test (haalt een commit als zip van
+  GitHub, test in 5.1, wisselt met backup). Bewust geen modulefunctie: productie gaat via RMM.
 - `HardenKit/HardenKit.psd1` / `HardenKit.psm1` — moduleskelet (manifest + root module die
   Public/Private dot-sourcet en alleen Public exporteert).
 - `HardenKit/Public/` — de negen module-functies uit de PRD, één bestand per functie.
@@ -83,6 +85,7 @@ Elke fase start pas als de gate van de vorige fase gehaald is (zie PRD).
 - **Fase 0 is nu code-compleet. Resteert, geen code:** de pilot-testlijst in `docs/LESSONS.md` afwerken op een echte DC (Stefans kant), en de Datto RMM-packaging (nog niet begonnen, zie open vragen).
 - **02-10-2026:** Eerste volledige Pester-run op Windows: 3 `Get-HKHostRole`-tests faalden (private functie buiten `InModuleScope`, eerder verborgen door skip op macOS), gefixt — 129/129 groen. `docs/PILOT-RUNBOOK.md` toegevoegd (lab-validatie, dag 0-inrichting via GPO, geplande taak, meetperiode, evaluatie tegen PRD-succescriteria). Open punt uit het runbook: `ldap_channel_binding` verwacht `LdapEnforceChannelBinding = 1`, wat geen pure auditstand is — in het lab uitzoeken vóór gebruik bij een klant.
 - **02-10-2026:** Twee blokkerende bugs voor de DC-test gevonden bij een eerste import in Windows PowerShell 5.1: (1) module laadde niet (bestanden zonder UTF-8 BOM, `—` brak de parser) — BOM op alle scriptbestanden + regressietest; (2) auditpol-subcategorienamen zijn gelokaliseerd — nu via GUID, parser via numerieke `Setting Value` met EN/NL-terugval. 133/133 groen. Details in `docs/LESSONS.md`. **Altijd ook in 5.1 importeren**, niet alleen pwsh 7 testen.
+- **02-10-2026:** Eerste lab-DC-run (DEMO-DC-001, Server 2022 EN): `setspn -X` geeft exitcode 1 bij succes en andere uitvoer dan de fixtures — gefixt met echte uitvoer als fixture; auditpol `/r` heeft géén numerieke kolom (bevestigd), parser valt terug op kolompositie. `tools/Update-HardenKit.ps1` toegevoegd voor lab-updates vanaf GitHub (end-to-end getest in 5.1: installatie, "al actueel", update met backup). Repo is publiek.
 
 ## Open vragen (uit PRD, nog niet beantwoord)
 

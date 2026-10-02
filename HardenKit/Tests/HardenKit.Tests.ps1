@@ -42,6 +42,15 @@ Describe 'HardenKit module' {
         $zonderBom | Should -BeNullOrEmpty
     }
 
+    It 'tools\Update-HardenKit.ps1 heeft een BOM en parset zonder fouten' {
+        $updater = Join-Path (Split-Path -Parent $script:ModuleRoot) 'tools/Update-HardenKit.ps1'
+        $bytes = [System.IO.File]::ReadAllBytes($updater)
+        ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) | Should -BeTrue
+        $errors = $null
+        [System.Management.Automation.Language.Parser]::ParseFile($updater, [ref]$null, [ref]$errors) | Out-Null
+        $errors | Should -BeNullOrEmpty
+    }
+
     It 'exporteert geen private helperfuncties' {
         (Get-Command -Module HardenKit -Name 'Get-HKHostRole' -ErrorAction SilentlyContinue) | Should -BeNullOrEmpty
     }
