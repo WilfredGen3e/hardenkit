@@ -15,10 +15,11 @@
         PSCustomObject met Success ([bool]) en Failure ([bool]).
 
     .NOTES
-        Fase 0. Gebruikt bij voorkeur de numerieke kolom 'Setting Value'; de tekst van
-        'Inclusion Setting' is gelokaliseerd en wordt alleen als terugval gebruikt (Engels en
-        Nederlands). Of 'Setting Value' in de /r-uitvoer zit en de exacte Nederlandse teksten
-        zijn nog te verifiëren op een echte DC (zie pilot-testlijst in docs/LESSONS.md).
+        Fase 0. De /r-uitvoer heeft geen numerieke kolom (bevestigd op Server 2022 EN: alleen
+        Machine Name, Policy Target, Subcategory, Subcategory GUID, Inclusion Setting,
+        Exclusion Setting), dus de gelokaliseerde tekst van 'Inclusion Setting' is de enige bron.
+        Engelse teksten bevestigd; de Nederlandse teksten zijn nog te verifiëren (zie
+        pilot-testlijst in docs/LESSONS.md).
     #>
     [CmdletBinding()]
     param(
@@ -40,18 +41,11 @@
             throw "Geen auditpol-uitvoer om te parsen."
         }
 
-        # Voorkeur: de numerieke 'Setting Value' (bitmask 1 = succes, 2 = fout), die is
-        # taalonafhankelijk. Valt terug op de tekst van 'Inclusion Setting' (Engels/Nederlands).
-        $settingValue = $row.PSObject.Properties['Setting Value']
-        if ($settingValue -and "$($settingValue.Value)" -match '^\d+$') {
-            $value = [int]$settingValue.Value
-            return [pscustomobject]@{
-                Success = ($value -band 1) -ne 0
-                Failure = ($value -band 2) -ne 0
-            }
-        }
-
-        $setting = "$($row.'Inclusion Setting')".Trim()
+        # 'Inclusion Setting' op naam; terugval op de 5e kolom voor het geval de kopregel op een
+        # anderstalige Windows ook vertaald is (kolomvolgorde is vast).
+        $column = $row.PSObject.Properties['Inclusion Setting']
+        if (-not $column) { $column = @($row.PSObject.Properties)[4] }
+        $setting = if ($column) { "$($column.Value)".Trim() } else { '' }
         $known = @{
             'Success'             = @($true,  $false)
             'Failure'             = @($false, $true)

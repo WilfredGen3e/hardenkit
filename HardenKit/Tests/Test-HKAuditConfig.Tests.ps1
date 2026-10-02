@@ -61,10 +61,21 @@ InModuleScope HardenKit {
             { , @() | ConvertFrom-HKAuditPolicyCsv } | Should -Throw
         }
 
-        It 'gebruikt de numerieke Setting Value boven de (gelokaliseerde) tekst' {
+        It 'parsed echte Server 2022-uitvoer (zonder aanhalingstekens)' {
+            # Letterlijk van lab-DC DEMO-DC-001 (02-10-2026).
             $csv = @(
-                '"Machine Name","Policy Target","Subcategory","Subcategory GUID","Inclusion Setting","Exclusion Setting","Setting Value"'
-                '"DC01","System","Aanmelden","{0CCE9215-69AE-11D9-BED3-505054503030}","Iets onbekends","","2"'
+                'Machine Name,Policy Target,Subcategory,Subcategory GUID,Inclusion Setting,Exclusion Setting'
+                'DEMO-DC-001,System,Logon,{0CCE9215-69AE-11D9-BED3-505054503030},Success and Failure,'
+            )
+            $result = $csv | ConvertFrom-HKAuditPolicyCsv
+            $result.Success | Should -BeTrue
+            $result.Failure | Should -BeTrue
+        }
+
+        It 'valt terug op de 5e kolom als de kopregel vertaald is' {
+            $csv = @(
+                'Computernaam,Beleidsdoel,Subcategorie,Subcategorie-GUID,Insluitingsinstelling,Uitsluitingsinstelling'
+                'DC01,System,Aanmelden,{0CCE9215-69AE-11D9-BED3-505054503030},Mislukt,'
             )
             $result = $csv | ConvertFrom-HKAuditPolicyCsv
             $result.Success | Should -BeFalse

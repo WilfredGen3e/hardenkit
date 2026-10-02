@@ -141,9 +141,10 @@ module niet laadde. Alle tests draaiden op pwsh 7 en zagen het dus niet.
 alle auditpol-afhankelijke maatregelen op Onbekend. Bevestigd met `auditpol /list
 /subcategory:* /v` op een NL-machine.
 **Fix:** `Get-HKAuditPolicy` vraagt op met de taalonafhankelijke GUID (de Engelse naam blijft
-de sleutel in het resultaat). `ConvertFrom-HKAuditPolicyCsv` gebruikt bij voorkeur de numerieke
-`Setting Value`, met Engelse/Nederlandse tekst als terugval, en gooit een fout bij onbekende
-tekst zodat het Onbekend wordt in plaats van onterecht NietVoldaan.
+de sleutel in het resultaat). `ConvertFrom-HKAuditPolicyCsv` herkent Engelse en Nederlandse
+tekst (kolom op naam, anders op positie, voor het geval de kopregel vertaald is) en gooit een
+fout bij onbekende tekst zodat het Onbekend wordt in plaats van onterecht NietVoldaan. Een
+numerieke kolom bestaat niet in de /r-uitvoer (bevestigd op een DC).
 **Waar gezien:** smoke-test van `Test-HKAuditConfig` op een NL-Windows 11 (02-10-2026).
 
 ### `setspn -X`: exitcode 1 bij succes, en de verzonnen fixtures klopten niet
@@ -181,10 +182,11 @@ opzoeken, en de code + test-fixtures bijstellen waar nodig.
 - Registrynamen: `AuditNTLMInDomain`, `16 LDAP Interface Events`, `LdapEnforceChannelBinding`,
   `LDAPServerIntegrity`, `RestrictSendingNTLMTraffic`, `RestrictReceivingNTLMTraffic`,
   `SysvolReady`.
-- `auditpol.exe /get /subcategory:{GUID} /r`: bevat de uitvoer de kolom `Setting Value`
-  (numeriek, taalonafhankelijk)? Zo niet, kloppen de Nederlandse terugvalteksten (`Geslaagd`/
-  `Mislukt`/`Geslaagd en mislukt`/`Geen controle`)? Elevated op een NL- én een EN-machine
-  draaien. Subcategorienamen zelf zijn bevestigd gelokaliseerd (zie hierboven), daarom GUID's.
+- `auditpol.exe /get /subcategory:{GUID} /r` — **EN bevestigd** op Server 2022 (02-10-2026):
+  geen numerieke kolom, alleen tekst in `Inclusion Setting` (`Success and Failure` e.d.),
+  CSV zonder aanhalingstekens. **NL nog open:** kloppen de terugvalteksten (`Geslaagd`/
+  `Mislukt`/`Geslaagd en mislukt`/`Geen controle`) en is de kopregel vertaald (parser valt dan
+  terug op de 5e kolom)? Elevated op een NL-machine draaien.
 - `setspn.exe -X`-uitvoer: Engelstalig geparsed; op een Nederlandstalige installatie kan deze
   tekst afwijken.
 - EventData-veldnamen event 8004 (NTLM/Operational): `UserName`, `Workstation`, `ServerName` —
