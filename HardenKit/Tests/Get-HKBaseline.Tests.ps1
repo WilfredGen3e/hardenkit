@@ -65,6 +65,30 @@ InModuleScope HardenKit {
             $result.Count | Should -Be 2
             $result[1].Spn | Should -Be 'HOST/legacyprinter'
         }
+
+        It 'geeft een lege lijst bij echte Server 2022-uitvoer zonder dubbele SPNs' {
+            # Letterlijk van een lab-DC (02-10-2026): kleine letter "found", plus
+            # "Processing entry"-regels. Werd eerder als 9 nep-SPNs geparsed.
+            $output = @('Checking domain DC=demo,DC=local') + @('Processing entry 0') * 8 + @('', 'found 0 group of duplicate SPNs.')
+            $result = @($output | ConvertFrom-HKSetspnOutput)
+            $result.Count | Should -Be 0
+        }
+
+        It 'haalt "is registered on these accounts:" van de SPN-naam af' {
+            $output = @(
+                'Checking domain DC=demo,DC=local'
+                'Processing entry 0'
+                'MSSQLSvc/sql01.demo.local:1433 is registered on these accounts:'
+                '        CN=SQL01,CN=Computers,DC=demo,DC=local'
+                '        CN=svc-sql,OU=Service,DC=demo,DC=local'
+                ''
+                'found 1 group of duplicate SPNs.'
+            )
+            $result = @($output | ConvertFrom-HKSetspnOutput)
+            $result.Count | Should -Be 1
+            $result[0].Spn | Should -Be 'MSSQLSvc/sql01.demo.local:1433'
+            $result[0].Accounts.Count | Should -Be 2
+        }
     }
 
     Describe 'Remote guard op de nieuwe Get-HKBaseline-helpers' {

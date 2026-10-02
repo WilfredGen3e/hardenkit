@@ -6,8 +6,9 @@
     .DESCRIPTION
         Pure parsing-stap, los van het aanroepen van setspn.exe zelf (zie Get-HKDuplicateSpn),
         zodat de parsing-logica onafhankelijk van Windows getest kan worden. Een niet-ingesprongen
-        regel die geen bekende boilerplate is ("Checking domain...", "Found N group...",
-        "operation completed...") wordt als SPN-naam gezien; de ingesprongen regels erna zijn de
+        regel die geen bekende boilerplate is ("Checking domain...", "Processing entry N",
+        "found N group...", "operation completed...") wordt als SPN-naam gezien (zonder het
+        achtervoegsel "is registered on these accounts:"); de ingesprongen regels erna zijn de
         accounts (DN's) die die SPN delen.
 
     .PARAMETER InputObject
@@ -31,7 +32,9 @@
 
     begin {
         $lines = [System.Collections.Generic.List[string]]::new()
-        $boilerplatePrefixes = @('Checking domain', 'Found ', 'operation completed')
+        # Hoofdletterongevoelig: echte uitvoer (Server 2022) is "found 0 group of duplicate SPNs."
+        # met kleine letter, plus een "Processing entry N"-regel per verwerkte batch.
+        $boilerplatePattern = '^(Checking domain|Processing entry|Found \d+ group|operation completed)'
     }
     process {
         foreach ($line in $InputObject) { $lines.Add($line) }
@@ -45,7 +48,7 @@
             if ([string]::IsNullOrWhiteSpace($raw)) { continue }
 
             $trimmed = $raw.Trim()
-            if ($boilerplatePrefixes | Where-Object { $trimmed.StartsWith($_) }) { continue }
+            if ($trimmed -match $boilerplatePattern) { continue }
 
             if ($raw -match '^\s') {
                 # Ingesprongen regel: account-DN onder de huidige SPN.
@@ -57,7 +60,8 @@
             if ($currentSpn) {
                 $results.Add([pscustomobject]@{ Spn = $currentSpn; Accounts = $currentAccounts.ToArray() })
             }
-            $currentSpn = $trimmed
+            # setspn zet "<spn> is registered on these accounts:" boven de accountregels.
+            $currentSpn = $trimmed -replace '\s+is registered on these accounts:?$', ''
             $currentAccounts = [System.Collections.Generic.List[string]]::new()
         }
 

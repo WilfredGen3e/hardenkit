@@ -24,8 +24,11 @@
         throw "Get-HKDuplicateSpn ondersteunt alleen de lokale machine."
     }
 
-    $output = & setspn.exe -X 2>&1
-    if ($LASTEXITCODE -ne 0) {
+    # setspn -X geeft ook bij een geslaagde run exitcode 1 (gezien op Server 2022 met
+    # "found 0 group of duplicate SPNs."). De slotregel is daarom het succescriterium, niet de
+    # exitcode.
+    $output = @(& setspn.exe -X 2>&1 | ForEach-Object { "$_" })
+    if (-not ($output -match '^\s*found \d+ group')) {
         throw "setspn.exe gaf exitcode $LASTEXITCODE`: $output"
     }
 

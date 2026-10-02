@@ -146,6 +146,18 @@ de sleutel in het resultaat). `ConvertFrom-HKAuditPolicyCsv` gebruikt bij voorke
 tekst zodat het Onbekend wordt in plaats van onterecht NietVoldaan.
 **Waar gezien:** smoke-test van `Test-HKAuditConfig` op een NL-Windows 11 (02-10-2026).
 
+### `setspn -X`: exitcode 1 bij succes, en de verzonnen fixtures klopten niet
+**Wat:** op een echte Server 2022-DC gaf `setspn -X` exitcode 1 terwijl de run gewoon slaagde
+("found 0 group of duplicate SPNs."), dus `DuplicateSpn` werd altijd `onbekend`. Daarnaast
+week de echte uitvoer af van de testfixtures: `found` met kleine letter, `Processing entry N`-
+regels, en SPN-regels met het achtervoegsel "is registered on these accounts:". De oude parser
+zou van de lab-uitvoer 9 nep-SPN's gemaakt hebben.
+**Fix:** succes bepalen op de slotregel `found N group`, niet op de exitcode; boilerplate
+hoofdletterongevoelig herkennen; achtervoegsel strippen. Echte lab-uitvoer als fixture.
+**Les:** fixtures op basis van documentatie zijn een gok. Zodra er echte uitvoer is, die
+letterlijk als fixture opnemen.
+**Waar gezien:** `Get-HKBaseline` op lab-DC DEMO-DC-001, Server 2022 EN (02-10-2026).
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
