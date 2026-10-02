@@ -23,6 +23,7 @@ fixt.**
 
 - `docs/PRD.md` — volledige productvereisten (bron van waarheid voor scope/fasering).
 - `docs/LESSONS.md` — valkuilen en hoe we ze oplosten; checken/aanvullen bij elke nieuwe stap.
+- `docs/PILOT-RUNBOOK.md` — stappenplan lab-validatie en fase 0-pilot bij klanten.
 - `HardenKit/HardenKit.psd1` / `HardenKit.psm1` — moduleskelet (manifest + root module die
   Public/Private dot-sourcet en alleen Public exporteert).
 - `HardenKit/Public/` — de negen module-functies uit de PRD, één bestand per functie.
@@ -80,6 +81,7 @@ Elke fase start pas als de gate van de vorige fase gehaald is (zie PRD).
   - **Drie bugs gevonden tijdens het testen, zie `docs/LESSONS.md`:** (1) dezelfde "`@($null)` is geen lege array"-valkuil, nu via een hashtable-lookup op een ontbrekende key. (2) Dezelfde if/else-unwrap-valkuil als bij `Export-HKData` — vier plekken, deels pas zichtbaar na een visuele controle van een écht gegenereerd rapport (de geautomatiseerde tests misten het omdat ze de JSON-serialisatie niet op array-vorm checkten; nu wel, als regressietest). **Les: geautomatiseerde tests alleen zijn niet genoeg voor dit soort serialisatie-bugs — het rapport ook gewoon een keer echt bekijken was wat het vond.** (3) Een **Pester 6-bug**: een test-titel met letterlijk `</script>` erin breekt de testuitvoering zelf (losse repro bevestigd, niets met onze code te maken) — test omgedoopt, in LESSONS.md vastgelegd als externe tool-beperking.
   - **Bewuste vereenvoudigingen** (geen bugs, wel scope-keuzes): geen automatische Rood-bepaling (vereist mensenkennis die fase 0 niet heeft); drempelwaarden-parameters bestaan maar worden nog niet toegepast in de statuslogica; "gedeelde oorzaak"-correlatie is een tekstuele notitie, geen echte samenvoeging; DC-compleetheid is een proxy (aantal dagbestanden, geen gatencontrole); gemeten periode is globaal, niet per maatregel geslicet. Allemaal in detail in `docs/LESSONS.md`.
 - **Fase 0 is nu code-compleet. Resteert, geen code:** de pilot-testlijst in `docs/LESSONS.md` afwerken op een echte DC (Stefans kant), en de Datto RMM-packaging (nog niet begonnen, zie open vragen).
+- **02-10-2026:** Eerste volledige Pester-run op Windows: 3 `Get-HKHostRole`-tests faalden (private functie buiten `InModuleScope`, eerder verborgen door skip op macOS), gefixt — 129/129 groen. `docs/PILOT-RUNBOOK.md` toegevoegd (lab-validatie, dag 0-inrichting via GPO, geplande taak, meetperiode, evaluatie tegen PRD-succescriteria). Open punt uit het runbook: `ldap_channel_binding` verwacht `LdapEnforceChannelBinding = 1`, wat geen pure auditstand is — in het lab uitzoeken vóór gebruik bij een klant.
 
 ## Open vragen (uit PRD, nog niet beantwoord)
 
