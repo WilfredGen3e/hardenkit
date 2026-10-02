@@ -43,16 +43,16 @@ Describe 'Get-HKHostRole' {
 
     It 'geeft DC terug voor DomainRole 4 of 5' -Skip:(-not $IsWindows) {
         Mock -ModuleName HardenKit Get-CimInstance { [pscustomobject]@{ DomainRole = 5 } }
-        Get-HKHostRole | Should -Be 'DC'
+        InModuleScope HardenKit { Get-HKHostRole } | Should -Be 'DC'
     }
 
     It 'geeft MemberServer terug voor DomainRole 3' -Skip:(-not $IsWindows) {
         Mock -ModuleName HardenKit Get-CimInstance { [pscustomobject]@{ DomainRole = 3 } }
-        Get-HKHostRole | Should -Be 'MemberServer'
+        InModuleScope HardenKit { Get-HKHostRole } | Should -Be 'MemberServer'
     }
 
     It 'geeft Other terug voor overige rollen' -Skip:(-not $IsWindows) {
         Mock -ModuleName HardenKit Get-CimInstance { [pscustomobject]@{ DomainRole = 0 } }
-        Get-HKHostRole | Should -Be 'Other'
+        InModuleScope HardenKit { Get-HKHostRole } | Should -Be 'Other'
     }
 }

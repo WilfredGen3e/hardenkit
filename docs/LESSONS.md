@@ -114,6 +114,16 @@ member/property op aangeroepen werd (`$_.PSObject.Properties...` op `$null`).
 missing_spn/ntlm_8004-correlatie, de outbound-groepering) hadden deze bug, gevonden door de
 "Groen zonder findings"-test (niet door de tests die toevallig wél findings hadden).
 
+### `-Skip:(-not $IsWindows)` verbergt kapotte tests op de macOS-ontwikkelmachine
+**Wat:** de drie `Get-HKHostRole`-tests in `HardenKit.Tests.ps1` riepen de private functie
+buiten `InModuleScope` aan (dezelfde valkuil als hierboven). Omdat ze op macOS werden
+overgeslagen, bleef dat onopgemerkt; bij de eerste run op Windows faalden ze alle drie met
+"command not found".
+**Fix:** aanroep in `InModuleScope HardenKit { ... }` gezet. Les: tests die alleen op Windows
+draaien zijn pas gevalideerd na een run op Windows. Draai de volledige suite op een
+Windows-machine vóór een release/pilot, niet alleen op macOS.
+**Waar gezien:** `HardenKit.Tests.ps1`, eerste Pester-run op Windows (02-10-2026).
+
 ## Werkwijze voor Windows-only logica op een macOS-ontwikkelmachine
 
 Pester-tests draaien lokaal op macOS (pwsh); de module zelf draait alleen op Windows Server
